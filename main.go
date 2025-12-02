@@ -24,7 +24,7 @@ func main() {
 		for _, site := range sites {
 			checkSite(site)
 		}
-		// Ждем 1 минуту
+		
 		time.Sleep(1 * time.Minute)
 	}
 }
