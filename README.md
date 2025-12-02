@@ -28,7 +28,7 @@ sites := []string{
     "https://www.google.com",
     "https://www.github.com",
     "https://www.python.org",
-    // Добавьте свои сайты
+    ...
 }
 
 Особенности
