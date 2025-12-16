@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+	"site-monitor/internal/checker"
 )
 
 func main() {
@@ -46,28 +46,9 @@ func main() {
 			return
 		default:
 			for _, site := range sites {
-				checkSite(site)
+				checker.CheckSite(site)
 			}
 			time.Sleep(1 * time.Minute)
 		}
-	}
-}
-
-func checkSite(url string) {
-	client := http.Client{
-		Timeout: 5 * time.Second,
-	}
-
-	resp, err := client.Get(url)
-	if err != nil {
-		fmt.Printf("Site %s NOT ok\n", url)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		fmt.Printf("Site %s ok\n", url)
-	} else {
-		fmt.Printf("Site %s NOT ok (status %d)\n", url, resp.StatusCode)
 	}
 }

@@ -17,7 +17,7 @@ Site https://www.nonexistentsite12345.com NOT ok
 
 Запустите программу:
 
-go run main.go
+go run cmd/monitor/main.go
 
 Настройка списка сайтов
 
