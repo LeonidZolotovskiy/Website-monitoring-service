@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"log/slog"
+	"net/http"
 	"sync"
 	"time"
 
@@ -13,23 +14,29 @@ type Scheduler struct {
 	sites    []config.Site
 	interval time.Duration
 	logger   *slog.Logger
+	client   *http.Client
 
 	ticker  *time.Ticker
 	quit    chan struct{}
 	wg      sync.WaitGroup
-	mu      sync.Mutex
-	running bool
 }
+
 
 func New(interval time.Duration, sites []config.Site, logger *slog.Logger) *Scheduler {
 	if interval <= 0 {
 		interval = time.Minute
 	}
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
 	return &Scheduler{
 		sites:    sites,
 		interval: interval,
-		quit:     make(chan struct{}),
 		logger:   logger,
+		client:   client,
+		quit:     make(chan struct{}),
 	}
 }
 
@@ -62,40 +69,42 @@ func (s *Scheduler) Stop() {
 }
 
 func (s *Scheduler) runChecks() {
-	s.mu.Lock()
-	if s.running {
-		s.mu.Unlock()
-		return
-	}
-	s.running = true
-	s.mu.Unlock()
+	var wg sync.WaitGroup
 
 	for _, site := range s.sites {
-		result := checker.CheckSite(site.URL)
+		wg.Add(1)
 
-		if result.Err != nil {
-			s.logger.Warn("Site check failed",
-				slog.String("url", site.URL),
-				slog.String("name", site.Name),
-				slog.String("error", result.Err.Error()),
-			)
-		} else if result.OK {
-			s.logger.Info("Site is up",
-				slog.String("url", site.URL),
-				slog.String("name", site.Name),
-				slog.Int("status_code", result.StatusCode),
-			)
-		} else {
-			s.logger.Warn("Site is down",
-				slog.String("url", site.URL),
-				slog.String("name", site.Name),
-				slog.Int("status_code", result.StatusCode),
-			)
-		}
+		go func(site config.Site) {
+			defer wg.Done()
+
+			result := checker.CheckSite(s.client, site.URL)
+
+			if result.Err != nil {
+				s.logger.Warn("Site check failed",
+					slog.String("url", site.URL),
+					slog.String("name", site.Name),
+					slog.String("error", result.Err.Error()),
+				)
+				return
+			}
+
+			if result.OK {
+				s.logger.Info("Site is up",
+					slog.String("url", site.URL),
+					slog.String("name", site.Name),
+					slog.Int("status_code", result.StatusCode),
+				)
+			} else {
+				s.logger.Warn("Site is down",
+					slog.String("url", site.URL),
+					slog.String("name", site.Name),
+					slog.Int("status_code", result.StatusCode),
+				)
+			}
+		}(site)
 	}
 
-	s.mu.Lock()
-	s.running = false
-	s.mu.Unlock()
+	wg.Wait()
 }
+
 

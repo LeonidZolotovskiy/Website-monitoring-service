@@ -2,10 +2,8 @@ package checker
 
 import (
 	"net/http"
-	"time"
 )
 
-// Result хранит результат проверки сайта
 type Result struct {
 	URL        string
 	StatusCode int
@@ -13,12 +11,7 @@ type Result struct {
 	Err        error
 }
 
-// CheckSite выполняет HTTP GET запрос и проверяет доступность сайта
-func CheckSite(url string) Result {
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
+func CheckSite(client *http.Client, url string) Result {
 	resp, err := client.Get(url)
 	if err != nil {
 		return Result{
@@ -35,6 +28,5 @@ func CheckSite(url string) Result {
 		URL:        url,
 		StatusCode: resp.StatusCode,
 		OK:         ok,
-		Err:        nil,
 	}
 }
