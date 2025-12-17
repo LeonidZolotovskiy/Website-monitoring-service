@@ -1,23 +1,40 @@
 package checker
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 )
 
-func CheckSite(url string) {
-	client := http.Client{Timeout: 5 * time.Second}
+// Result хранит результат проверки сайта
+type Result struct {
+	URL        string
+	StatusCode int
+	OK         bool
+	Err        error
+}
+
+// CheckSite выполняет HTTP GET запрос и проверяет доступность сайта
+func CheckSite(url string) Result {
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
 	resp, err := client.Get(url)
 	if err != nil {
-		fmt.Printf("Site %s NOT ok\n", url)
-		return
+		return Result{
+			URL: url,
+			OK:  false,
+			Err: err,
+		}
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
-		fmt.Printf("Site %s ok\n", url)
-	} else {
-		fmt.Printf("Site %s NOT ok (status %d)\n", url, resp.StatusCode)
+	ok := resp.StatusCode == http.StatusOK
+
+	return Result{
+		URL:        url,
+		StatusCode: resp.StatusCode,
+		OK:         ok,
+		Err:        nil,
 	}
 }

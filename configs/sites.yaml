@@ -1,0 +1,32 @@
+interval: 60s
+
+sites:
+  - name: Google
+    url: https://www.google.com
+
+  - name: GitHub
+    url: https://www.github.com
+
+  - name: StackOverflow
+    url: https://www.stackoverflow.com
+
+  - name: Wikipedia
+    url: https://www.wikipedia.org
+
+  - name: Reddit
+    url: https://www.reddit.com
+
+  - name: Apple
+    url: https://www.apple.com
+
+  - name: Microsoft
+    url: https://www.microsoft.com
+
+  - name: Fake site 1
+    url: https://www.thissitedoesnotexist12345.com
+
+  - name: Localhost
+    url: https://localhost:1234
+
+  - name: Invalid URL
+    url: http://invalid-url
