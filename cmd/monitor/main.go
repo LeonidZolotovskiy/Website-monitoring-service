@@ -1,14 +1,17 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"site-monitor/internal/config"
 	"site-monitor/internal/scheduler"
+	"site-monitor/internal/server"
 )
 
 func main() {
@@ -26,7 +29,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Создаём JSON-логгер
 	handler := slog.NewJSONHandler(os.Stdout, nil)
 	logger := slog.New(handler)
 
@@ -38,12 +40,22 @@ func main() {
 	s := scheduler.New(cfg.Interval, cfg.Sites, logger)
 	s.Start()
 
-	// Обработка Ctrl+C
+	router := server.NewRouter()
+	httpServer := server.New(":8080", router, logger)
+	httpServer.Start()
+
+	
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
 
 	logger.Info("Shutting down...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_ = httpServer.Stop(ctx)
 	s.Stop()
+
 	logger.Info("Site Monitor stopped")
 }
