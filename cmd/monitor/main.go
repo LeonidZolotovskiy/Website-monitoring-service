@@ -54,7 +54,12 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_ = httpServer.Stop(ctx)
+	if err := httpServer.Stop(ctx); err != nil {
+		logger.Error(
+			"failed to stop HTTP server",
+			slog.String("error", err.Error()),
+		)
+	}
 	s.Stop()
 
 	logger.Info("Site Monitor stopped")

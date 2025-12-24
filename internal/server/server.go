@@ -22,15 +22,15 @@ func New(addr string, handler http.Handler, logger *slog.Logger) *Server {
 	}
 }
 
-func (s *Server) Start() {
-	go func() {
-		s.logger.Info("HTTP server started", slog.String("addr", s.httpServer.Addr))
+func (s *Server) Start() error {
+	s.logger.Info("HTTP server started", slog.String("addr", s.httpServer.Addr))
 
-		if err := s.httpServer.ListenAndServe(); err != nil &&
-			!errors.Is(err, http.ErrServerClosed) {
-			s.logger.Error("HTTP server error", slog.String("error", err.Error()))
-		}
-	}()
+	err := s.httpServer.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Server) Stop(ctx context.Context) error {
