@@ -33,7 +33,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// logger
+	// =========================
+	// Logger
+	// =========================
 	handlerJSON := slog.NewJSONHandler(os.Stdout, nil)
 	logger := slog.New(handlerJSON)
 
@@ -55,23 +57,33 @@ func main() {
 	}
 
 	// =========================
-	// Repository + Handler (DI)
+	// Repository + Handler
 	// =========================
-	siteRepo := memory.NewSiteMemoryRepository(sites)
+	// =========================
+
+	siteRepo := memory.NewSiteMemoryRepository()
+	siteRepo.Init(sites)
+
 	siteHandler := handler.NewSiteHandler(siteRepo)
 
 	// =========================
-	// Scheduler (как было)
+	// Scheduler
 	// =========================
 	s := scheduler.New(cfg.Interval, cfg.Sites, logger)
 	s.Start()
 
 	// =========================
-	// HTTP server
+	// HTTP Router + Server
 	// =========================
-	router := server.NewHTTPServer(siteHandler)
+	router := server.NewRouter(siteHandler)
+
 	httpServer := server.New(":8080", router, logger)
-	httpServer.Start()
+
+	go func() {
+		if err := httpServer.Start(); err != nil {
+			logger.Error("HTTP server error", slog.String("error", err.Error()))
+		}
+	}()
 
 	// =========================
 	// Graceful shutdown
