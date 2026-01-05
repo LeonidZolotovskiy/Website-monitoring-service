@@ -12,6 +12,21 @@ type SiteMemoryRepository struct {
 	sites map[string]domain.Site 
 }
 
+func (r *SiteMemoryRepository) Reset() {
+    r.mu.Lock()
+    defer r.mu.Unlock()
+    r.sites = make(map[string]domain.Site)
+}
+
+func PopulateRepository(repo *SiteMemoryRepository, sites []domain.Site) error {
+    for _, s := range sites {
+        if err := repo.Create(s); err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
 func (r *SiteMemoryRepository) Init(sites []domain.Site) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -46,7 +61,7 @@ func (r *SiteMemoryRepository) GetByURL(url string) (*domain.Site, error) {
 
 	site, exists := r.sites[url]
 	if !exists {
-		return nil, nil
+		return nil, repository.ErrSiteNotFound
 	}
 
 	return &site, nil
@@ -73,4 +88,23 @@ func (r *SiteMemoryRepository) DeleteByID(id string) error {
 	}
 	delete(r.sites, id)
 	return nil
+}
+
+func (r *StatusMemoryRepository) Save(s domain.SiteCheckStatus) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.status[s.SiteID] = s
+}
+
+func (r *StatusMemoryRepository) GetBySiteID(siteID string) (*domain.SiteCheckStatus, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	s, ok := r.status[siteID]
+	if !ok {
+		return nil, false
+	}
+
+	return &s, true
 }

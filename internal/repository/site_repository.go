@@ -16,3 +16,8 @@ type SiteRepository interface {
 	GetAll() ([]domain.Site, error)
 	DeleteByID(id string) error
 }
+
+type StatusRepository interface {
+	Save(status domain.SiteCheckStatus)
+	GetBySiteID(siteID string) (*domain.SiteCheckStatus, bool)
+}

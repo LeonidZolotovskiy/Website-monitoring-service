@@ -6,30 +6,14 @@ import (
 )
 
 func NewRouter(siteHandler *handler.SiteHandler) *http.ServeMux {
-	root := http.NewServeMux()
+	mux := http.NewServeMux()
 
-	apiV1 := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/sites", siteHandler.GetSites)
+	mux.HandleFunc("POST /api/v1/sites", siteHandler.Create)
 
-	apiV1.HandleFunc("/sites", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			siteHandler.GetSites(w, r)
-		case http.MethodPost:
-			siteHandler.Create(w, r)
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-		}
-	})
+	mux.HandleFunc("DELETE /api/v1/sites/{id}/", siteHandler.Delete)
 
-	apiV1.HandleFunc("/sites/", func(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodDelete {
-		siteHandler.Delete(w, r)
-		return
-	}
-	})
-	apiV1.HandleFunc("/ping", PingHandler)
+	mux.HandleFunc("GET /api/v1/ping", PingHandler)
 
-	root.Handle("/api/v1/", http.StripPrefix("/api/v1", apiV1))
-
-	return root
+	return mux
 }

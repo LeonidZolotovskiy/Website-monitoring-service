@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 
 	"site-monitor/internal/domain"
 	"site-monitor/internal/repository"
@@ -87,22 +88,17 @@ func (h *SiteHandler) GetSites(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SiteHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(parts) != 2 {
-		http.Error(w, "invalid path", http.StatusBadRequest)
-		return
-	}
+    vars := mux.Vars(r)      // получаем переменные из пути
+    id := vars["id"]         // "id" — это имя параметра в роуте
 
-	id := parts[1]
+    if err := h.repo.DeleteByID(id); err != nil {
+        if err == repository.ErrSiteNotFound {
+            http.Error(w, "site not found", http.StatusNotFound)
+            return
+        }
+        http.Error(w, "internal server error", http.StatusInternalServerError)
+        return
+    }
 
-	if err := h.repo.DeleteByID(id); err != nil {
-		if err == repository.ErrSiteNotFound {
-			http.Error(w, "site not found", http.StatusNotFound)
-			return
-		}
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+    w.WriteHeader(http.StatusNoContent)
 }
