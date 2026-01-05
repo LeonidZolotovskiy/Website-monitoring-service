@@ -1,14 +1,19 @@
 package server
 
-import "net/http"
+import (
+	"net/http"
+	"site-monitor/internal/http/handler"
+)
 
-func NewRouter() *http.ServeMux {
-	root := http.NewServeMux()
+func NewRouter(siteHandler *handler.SiteHandler) *http.ServeMux {
+	mux := http.NewServeMux()
 
-	apiV1 := http.NewServeMux()
-	apiV1.HandleFunc("/ping", PingHandler)
+	mux.HandleFunc("GET /api/v1/sites", siteHandler.GetSites)
+	mux.HandleFunc("POST /api/v1/sites", siteHandler.Create)
 
-	root.Handle("/api/v1/", http.StripPrefix("/api/v1", apiV1))
+	mux.HandleFunc("DELETE /api/v1/sites/{id}/", siteHandler.Delete)
 
-	return root
+	mux.HandleFunc("GET /api/v1/ping", PingHandler)
+
+	return mux
 }
