@@ -62,7 +62,12 @@ func main() {
 	// =========================
 
 	siteRepo := memory.NewSiteMemoryRepository()
-	siteRepo.Init(sites)
+	
+	siteRepo.Reset() 
+
+	if err := memory.PopulateRepository(siteRepo, sites); err != nil {
+    	logger.Error(fmt.Sprintf("failed to populate repository: %v", err))
+	}
 
 	siteHandler := handler.NewSiteHandler(siteRepo)
 
