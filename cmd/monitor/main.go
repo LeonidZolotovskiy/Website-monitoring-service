@@ -48,9 +48,9 @@ func main() {
 	// MAP config.Site -> domain.Site
 	// =========================
 	sites := make([]domain.Site, 0, len(cfg.Sites))
-	for i, s := range cfg.Sites {
+	for _, s := range cfg.Sites {
 		sites = append(sites, domain.Site{
-			ID:   fmt.Sprintf("site-%d", i+1),
+			ID:   s.ID,
 			Name: s.Name,
 			URL:  s.URL,
 		})
@@ -62,19 +62,21 @@ func main() {
 	// =========================
 
 	siteRepo := memory.NewSiteMemoryRepository()
-	
+	siteStatus := memory.NewStatusMemoryRepository()
+
 	siteRepo.Reset() 
+	siteStatus.Reset()
 
 	if err := memory.PopulateRepository(siteRepo, sites); err != nil {
     	logger.Error(fmt.Sprintf("failed to populate repository: %v", err))
 	}
 
-	siteHandler := handler.NewSiteHandler(siteRepo)
-
+	siteHandler := handler.NewSiteHandler(siteRepo,siteStatus)
+	
 	// =========================
 	// Scheduler
 	// =========================
-	s := scheduler.New(cfg.Interval, cfg.Sites, logger)
+	s := scheduler.New(cfg.Interval, cfg.Sites, logger, siteStatus)
 	s.Start()
 
 	// =========================

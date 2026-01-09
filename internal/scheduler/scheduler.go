@@ -6,15 +6,21 @@ import (
 	"sync"
 	"time"
 
+	"site-monitor/internal/domain"
 	"site-monitor/internal/checker"
 	"site-monitor/internal/config"
 )
+
+type StatusRepository interface {
+	Save(status domain.SiteCheckStatus)
+}
 
 type Scheduler struct {
 	sites    []config.Site
 	interval time.Duration
 	logger   *slog.Logger
 	client   *http.Client
+	statusRepo StatusRepository
 
 	ticker  *time.Ticker
 	quit    chan struct{}
@@ -22,7 +28,12 @@ type Scheduler struct {
 }
 
 
-func New(interval time.Duration, sites []config.Site, logger *slog.Logger) *Scheduler {
+func New(
+	interval time.Duration,
+	sites []config.Site,
+	logger *slog.Logger,
+	statusRepo StatusRepository,
+) *Scheduler {
 	if interval <= 0 {
 		interval = time.Minute
 	}
@@ -32,13 +43,15 @@ func New(interval time.Duration, sites []config.Site, logger *slog.Logger) *Sche
 	}
 
 	return &Scheduler{
-		sites:    sites,
-		interval: interval,
-		logger:   logger,
-		client:   client,
-		quit:     make(chan struct{}),
+		sites:      sites,
+		interval:   interval,
+		logger:     logger,
+		client:     client,
+		statusRepo: statusRepo,
+		quit:       make(chan struct{}),
 	}
 }
+
 
 func (s *Scheduler) Start() {
 	s.ticker = time.NewTicker(s.interval)
@@ -77,8 +90,30 @@ func (s *Scheduler) runChecks() {
 		go func(site config.Site) {
 			defer wg.Done()
 
+			start := time.Now()
 			result := checker.CheckSite(s.client, site.URL)
+			checkedAt := time.Now()
+			responseTime := checkedAt.Sub(start)
 
+			status := domain.StatusOK
+			if !result.OK || result.Err != nil {
+				status = domain.StatusError
+			}
+
+			var statusCode *int
+			if result.Err == nil {
+				statusCode = &result.StatusCode
+			}
+
+			s.statusRepo.Save(domain.SiteCheckStatus{
+				SiteID:       site.ID, 
+				Status:       status,
+				StatusCode:   statusCode,
+				LastCheckedAt:    &checkedAt,
+				ResponseTime: &responseTime,
+			})
+
+			// логирование — как было
 			if result.Err != nil {
 				s.logger.Warn("Site check failed",
 					slog.String("url", site.URL),
@@ -106,5 +141,6 @@ func (s *Scheduler) runChecks() {
 
 	wg.Wait()
 }
+
 
 

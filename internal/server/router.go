@@ -15,5 +15,7 @@ func NewRouter(siteHandler *handler.SiteHandler) *http.ServeMux {
 
 	mux.HandleFunc("GET /api/v1/ping", PingHandler)
 
+	mux.HandleFunc("GET /api/v1/sites/{id}/status", siteHandler.GetStatus)
+
 	return mux
 }

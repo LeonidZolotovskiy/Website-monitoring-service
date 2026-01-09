@@ -11,10 +11,10 @@ type Handlers struct {
 	Site *handler.SiteHandler
 }
 
-func NewHandlers(siteRepo repository.SiteRepository) *Handlers {
-	return &Handlers{
-		Site: handler.NewSiteHandler(siteRepo),
-	}
+func NewHandlers(siteRepo repository.SiteRepository, statusRepo repository.StatusRepository) *Handlers {
+    return &Handlers{
+        Site: handler.NewSiteHandler(siteRepo, statusRepo),
+    }
 }
 
 func PingHandler(w http.ResponseWriter, r *http.Request) {
