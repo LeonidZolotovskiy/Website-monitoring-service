@@ -3,7 +3,6 @@ package handler
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"site-monitor/internal/repository"
 )
 // Delete godoc
@@ -15,9 +14,8 @@ import (
 // @Failure      404 {string} string "Site not found"
 // @Failure      500 {string} string "Internal server error"
 // @Router       /sites/{id} [delete]
-func (h *SiteHandler) Delete(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)      
-    id := vars["id"]        
+func (h *SiteHandler) Delete(w http.ResponseWriter, r *http.Request) {  
+    id := r.PathValue("id")      
 
     if err := h.siteRepo.DeleteByID(id); err != nil {
         if err == repository.ErrSiteNotFound {

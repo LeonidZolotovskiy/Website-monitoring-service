@@ -9,7 +9,8 @@ import (
 
 type SiteMemoryRepository struct {
 	mu    sync.RWMutex
-	sites map[string]domain.Site 
+	sites map[string]domain.Site
+	sitesByURL map[string]string 
 }
 
 
@@ -41,19 +42,22 @@ func (r *SiteMemoryRepository) Init(sites []domain.Site) {
 func NewSiteMemoryRepository() *SiteMemoryRepository {
 	return &SiteMemoryRepository{
 		sites: make(map[string]domain.Site),
+		sitesByURL: make(map[string]string),
 	}
 }
 
 func (r *SiteMemoryRepository) Create(site domain.Site) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+    r.mu.Lock()
+    defer r.mu.Unlock()
 
-	if _, exists := r.sites[site.ID]; exists {
-		return repository.ErrSiteAlreadyExists
-	}
+    if _, exists := r.sitesByURL[site.URL]; exists {
+        return repository.ErrSiteAlreadyExists
+    }
 
-	r.sites[site.ID] = site
-	return nil
+    r.sites[site.ID] = site
+    r.sitesByURL[site.URL] = site.ID
+
+    return nil
 }
 
 func (r *SiteMemoryRepository) GetByURL(url string) (*domain.Site, error) {
@@ -84,12 +88,17 @@ func (r *SiteMemoryRepository) DeleteByID(id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if _, ok := r.sites[id]; !ok {
+	site, ok := r.sites[id]
+	if !ok {
 		return repository.ErrSiteNotFound
 	}
+
 	delete(r.sites, id)
+	delete(r.sitesByURL, site.URL)
+
 	return nil
 }
+
 
 func (r *SiteMemoryRepository) GetByID(id string) (*domain.Site, error) {
 	r.mu.RLock()
