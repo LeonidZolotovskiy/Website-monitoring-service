@@ -4,7 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 )
-
+// GetSites godoc
+// @Summary      Get sites
+// @Description  Returns a list of all monitored sites
+// @Tags         sites
+// @Produce      json
+// @Success      200 {array} domain.Site
+// @Failure      500 {string} string "Failed to get sites"
+// @Router       /sites [get]
 func (h *SiteHandler) GetSites(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)

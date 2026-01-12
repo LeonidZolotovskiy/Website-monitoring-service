@@ -6,7 +6,16 @@ import (
 
 	"site-monitor/internal/domain"
 )
-
+// GetStatus godoc
+// @Summary      Get site status
+// @Description  Returns the latest monitoring status for a site
+// @Tags         status
+// @Produce      json
+// @Param        id path string true "Site ID"
+// @Success      200 {object} SiteStatusResponse
+// @Failure      400 {string} string "Invalid site id"
+// @Failure      404 {string} string "Site not found"
+// @Router       /sites/{id}/status [get]
 func (h *SiteHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
     siteID := r.PathValue("id")
 

@@ -48,11 +48,11 @@ func (r *SiteMemoryRepository) Create(site domain.Site) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if _, exists := r.sites[site.URL]; exists {
+	if _, exists := r.sites[site.ID]; exists {
 		return repository.ErrSiteAlreadyExists
 	}
 
-	r.sites[site.URL] = site
+	r.sites[site.ID] = site
 	return nil
 }
 

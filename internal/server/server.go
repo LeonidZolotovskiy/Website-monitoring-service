@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	
-	"site-monitor/internal/http/handler"
 )
 
 type Server struct {
@@ -38,12 +37,4 @@ func (s *Server) Start() error {
 func (s *Server) Stop(ctx context.Context) error {
 	s.logger.Info("Stopping HTTP server...")
 	return s.httpServer.Shutdown(ctx)
-}
-
-func NewHTTPServer(siteHandler *handler.SiteHandler) *http.ServeMux {
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/api/v1/sites", siteHandler.GetSites)
-
-	return mux
 }

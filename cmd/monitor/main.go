@@ -17,7 +17,10 @@ import (
 	"site-monitor/internal/scheduler"
 	"site-monitor/internal/server"
 )
-
+// @title           Site Monitor API
+// @version         1.0
+// @description     API for monitoring site availability
+// @BasePath        /api/v1
 func main() {
 	configPath := flag.String("config", "", "Path to config YAML file")
 	flag.Parse()
@@ -70,9 +73,16 @@ func main() {
 	if err := memory.PopulateRepository(siteRepo, sites); err != nil {
     	logger.Error(fmt.Sprintf("failed to populate repository: %v", err))
 	}
+	startTime := time.Now()
+	version := "1.0.0"
 
-	siteHandler := handler.NewSiteHandler(siteRepo,siteStatus)
-	
+	siteHandler := handler.NewSiteHandler(siteRepo,siteStatus,logger)
+	healthHandler := handler.NewHealthHandler(startTime, version)
+
+	handlers := &server.Handlers{
+		Site:   siteHandler,
+		Health: healthHandler,
+	}
 	// =========================
 	// Scheduler
 	// =========================
@@ -82,13 +92,16 @@ func main() {
 	// =========================
 	// HTTP Router + Server
 	// =========================
-	router := server.NewRouter(siteHandler)
+	router := server.NewRouter(handlers, logger)
 
 	httpServer := server.New(":8080", router, logger)
 
 	go func() {
 		if err := httpServer.Start(); err != nil {
-			logger.Error("HTTP server error", slog.String("error", err.Error()))
+			logger.Error(
+				"HTTP server error",
+				slog.String("error", err.Error()),
+			)
 		}
 	}()
 

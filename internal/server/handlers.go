@@ -4,17 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"site-monitor/internal/http/handler"
-	"site-monitor/internal/repository"
 )
 
 type Handlers struct {
-	Site *handler.SiteHandler
-}
-
-func NewHandlers(siteRepo repository.SiteRepository, statusRepo repository.StatusRepository) *Handlers {
-    return &Handlers{
-        Site: handler.NewSiteHandler(siteRepo, statusRepo),
-    }
+	Site   *handler.SiteHandler
+	Health *handler.HealthHandler
 }
 
 func PingHandler(w http.ResponseWriter, r *http.Request) {
@@ -28,4 +22,5 @@ func PingHandler(w http.ResponseWriter, r *http.Request) {
 		"message": "pong",
 	})
 }
+
 

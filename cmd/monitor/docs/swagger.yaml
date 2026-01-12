@@ -1,0 +1,192 @@
+basePath: /api/v1
+definitions:
+  domain.Site:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      url:
+        type: string
+    type: object
+  handler.DependencyStatus:
+    properties:
+      error:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  handler.HealthResponse:
+    properties:
+      dependencies:
+        items:
+          $ref: '#/definitions/handler.DependencyStatus'
+        type: array
+      serverTime:
+        type: string
+      status:
+        $ref: '#/definitions/handler.HealthStatus'
+      uptime:
+        type: string
+      version:
+        type: string
+    type: object
+  handler.HealthStatus:
+    enum:
+    - healthy
+    - unhealthy
+    type: string
+    x-enum-varnames:
+    - HealthHealthy
+    - HealthUnhealthy
+  handler.SiteStatusResponse:
+    properties:
+      error:
+        type: string
+      lastCheckedAt:
+        type: string
+      responseTimeMs:
+        type: integer
+      status:
+        type: string
+      statusCode:
+        type: integer
+      url:
+        type: string
+    type: object
+  handler.createSiteRequest:
+    properties:
+      name:
+        type: string
+      url:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for monitoring site availability
+  title: Site Monitor API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Returns service health status, uptime, version and dependencies
+        state
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Service is healthy
+          schema:
+            $ref: '#/definitions/handler.HealthResponse'
+        "503":
+          description: Service is unhealthy
+          schema:
+            $ref: '#/definitions/handler.HealthResponse'
+      summary: Health check
+      tags:
+      - health
+  /sites:
+    get:
+      description: Returns a list of all monitored sites
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Site'
+            type: array
+        "500":
+          description: Failed to get sites
+          schema:
+            type: string
+      summary: Get sites
+      tags:
+      - sites
+    post:
+      consumes:
+      - application/json
+      description: Creates a new site for monitoring
+      parameters:
+      - description: Site data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.createSiteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Site created
+          schema:
+            $ref: '#/definitions/domain.Site'
+        "400":
+          description: Invalid request body or URL
+          schema:
+            type: string
+        "409":
+          description: Site already exists
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Create site
+      tags:
+      - sites
+  /sites/{id}:
+    delete:
+      description: Deletes a site by ID
+      parameters:
+      - description: Site ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Site deleted
+        "404":
+          description: Site not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Delete site
+      tags:
+      - sites
+  /sites/{id}/status:
+    get:
+      description: Returns the latest monitoring status for a site
+      parameters:
+      - description: Site ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.SiteStatusResponse'
+        "400":
+          description: Invalid site id
+          schema:
+            type: string
+        "404":
+          description: Site not found
+          schema:
+            type: string
+      summary: Get site status
+      tags:
+      - status
+swagger: "2.0"

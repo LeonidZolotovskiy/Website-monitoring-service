@@ -11,7 +11,18 @@ import (
 	"site-monitor/internal/domain"
 	"site-monitor/internal/repository"
 )
-
+// Create godoc
+// @Summary      Create site
+// @Description  Creates a new site for monitoring
+// @Tags         sites
+// @Accept       json
+// @Produce      json
+// @Param        request body createSiteRequest true "Site data"
+// @Success      201 {object} domain.Site "Site created"
+// @Failure      400 {string} string "Invalid request body or URL"
+// @Failure      409 {string} string "Site already exists"
+// @Failure      500 {string} string "Internal server error"
+// @Router       /sites [post]
 func (h *SiteHandler) Create(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
