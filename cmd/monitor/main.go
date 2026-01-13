@@ -17,7 +17,10 @@ import (
 	"site-monitor/internal/scheduler"
 	"site-monitor/internal/server"
 )
-
+// @title           Site Monitor API
+// @version         1.0
+// @description     API for monitoring site availability
+// @BasePath        /api/v1
 func main() {
 	configPath := flag.String("config", "", "Path to config YAML file")
 	flag.Parse()
@@ -48,9 +51,9 @@ func main() {
 	// MAP config.Site -> domain.Site
 	// =========================
 	sites := make([]domain.Site, 0, len(cfg.Sites))
-	for i, s := range cfg.Sites {
+	for _, s := range cfg.Sites {
 		sites = append(sites, domain.Site{
-			ID:   fmt.Sprintf("site-%d", i+1),
+			ID:   s.ID,
 			Name: s.Name,
 			URL:  s.URL,
 		})
@@ -62,31 +65,43 @@ func main() {
 	// =========================
 
 	siteRepo := memory.NewSiteMemoryRepository()
-	
+	siteStatus := memory.NewStatusMemoryRepository()
+
 	siteRepo.Reset() 
+	siteStatus.Reset()
 
 	if err := memory.PopulateRepository(siteRepo, sites); err != nil {
     	logger.Error(fmt.Sprintf("failed to populate repository: %v", err))
 	}
+	startTime := time.Now()
+	version := "1.0.0"
 
-	siteHandler := handler.NewSiteHandler(siteRepo)
+	siteHandler := handler.NewSiteHandler(siteRepo,siteStatus,logger)
+	healthHandler := handler.NewHealthHandler(startTime, version)
 
+	handlers := &server.Handlers{
+		Site:   siteHandler,
+		Health: healthHandler,
+	}
 	// =========================
 	// Scheduler
 	// =========================
-	s := scheduler.New(cfg.Interval, cfg.Sites, logger)
+	s := scheduler.New(cfg.Interval, cfg.Sites, logger, siteStatus)
 	s.Start()
 
 	// =========================
 	// HTTP Router + Server
 	// =========================
-	router := server.NewRouter(siteHandler)
+	router := server.NewRouter(handlers, logger)
 
 	httpServer := server.New(":8080", router, logger)
 
 	go func() {
 		if err := httpServer.Start(); err != nil {
-			logger.Error("HTTP server error", slog.String("error", err.Error()))
+			logger.Error(
+				"HTTP server error",
+				slog.String("error", err.Error()),
+			)
 		}
 	}()
 

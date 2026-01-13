@@ -15,6 +15,7 @@ type SiteRepository interface {
 	GetByURL(url string) (*domain.Site, error)
 	GetAll() ([]domain.Site, error)
 	DeleteByID(id string) error
+	GetByID(id string) (*domain.Site, error)
 }
 
 type StatusRepository interface {

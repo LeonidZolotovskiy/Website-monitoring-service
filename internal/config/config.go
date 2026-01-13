@@ -10,6 +10,7 @@ import (
 
 
 type Site struct {
+	ID   string `yaml:"id"`
 	Name string `yaml:"name"`
 	URL  string `yaml:"url"`
 }

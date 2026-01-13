@@ -1,32 +1,33 @@
 interval: 60s
 
 sites:
-  - name: Google
+  - id: site-1
+    name: Google
     url: https://www.google.com
-
-  - name: GitHub
+  - id: site-2
+    name: GitHub
     url: https://www.github.com
-
-  - name: StackOverflow
+  - id: site-3
+    name: StackOverflow
     url: https://www.stackoverflow.com
-
-  - name: Wikipedia
+  - id: site-4
+    name: Wikipedia
     url: https://www.wikipedia.org
-
-  - name: Reddit
+  - id: site-5
+    name: Reddit
     url: https://www.reddit.com
-
-  - name: Apple
+  - id: site-6
+    name: Apple
     url: https://www.apple.com
-
-  - name: Microsoft
+  - id: site-7
+    name: Microsoft
     url: https://www.microsoft.com
-
-  - name: Fake site 1
+  - id: site-8
+    name: Fake Site 1
     url: https://www.thissitedoesnotexist12345.com
-
-  - name: Localhost
+  - id: site-9
+    name: Localhost
     url: https://localhost:1234
-
-  - name: Invalid URL
+  - id: site-10
+    name: Invalid URL
     url: http://invalid-url
