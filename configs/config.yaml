@@ -1,0 +1,12 @@
+server:
+  port: 8080
+
+database:
+  host: postgres
+  port: 5432
+  user: myuser
+  password: mypassword
+  name: mydatabase
+  sslmode: disable
+
+sites_file: /app/configs/sites.yaml

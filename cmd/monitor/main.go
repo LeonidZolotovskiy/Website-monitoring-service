@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -10,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/lib/pq"
+
 	"site-monitor/internal/config"
 	"site-monitor/internal/domain"
 	"site-monitor/internal/http/handler"
@@ -17,6 +20,7 @@ import (
 	"site-monitor/internal/scheduler"
 	"site-monitor/internal/server"
 )
+
 // @title           Site Monitor API
 // @version         1.0
 // @description     API for monitoring site availability
@@ -48,6 +52,27 @@ func main() {
 	)
 
 	// =========================
+	// PostgreSQL подключение
+	// =========================
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+
+	dsn := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		dbHost, dbPort, dbUser, dbPass, dbName,
+	)
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		logger.Error("failed to connect to PostgreSQL", slog.String("error", err.Error()))
+	} else if err := db.Ping(); err != nil {
+		logger.Error("PostgreSQL is not ready", slog.String("error", err.Error()))
+	} else {
+		logger.Info("PostgreSQL connected successfully")
+	}
+	// =========================
 	// MAP config.Site -> domain.Site
 	// =========================
 	sites := make([]domain.Site, 0, len(cfg.Sites))
@@ -60,29 +85,29 @@ func main() {
 	}
 
 	// =========================
-	// Repository + Handler
+	// Repository + Handler (Memory пока оставляем)
 	// =========================
-	// =========================
-
 	siteRepo := memory.NewSiteMemoryRepository()
 	siteStatus := memory.NewStatusMemoryRepository()
 
-	siteRepo.Reset() 
+	siteRepo.Reset()
 	siteStatus.Reset()
 
 	if err := memory.PopulateRepository(siteRepo, sites); err != nil {
-    	logger.Error(fmt.Sprintf("failed to populate repository: %v", err))
+		logger.Error(fmt.Sprintf("failed to populate repository: %v", err))
 	}
+
 	startTime := time.Now()
 	version := "1.0.0"
 
-	siteHandler := handler.NewSiteHandler(siteRepo,siteStatus,logger)
+	siteHandler := handler.NewSiteHandler(siteRepo, siteStatus, logger)
 	healthHandler := handler.NewHealthHandler(startTime, version)
 
 	handlers := &server.Handlers{
 		Site:   siteHandler,
 		Health: healthHandler,
 	}
+
 	// =========================
 	// Scheduler
 	// =========================
@@ -122,6 +147,11 @@ func main() {
 	}
 
 	s.Stop()
+
+	// Закрываем подключение к PostgreSQL, если было
+	if db != nil {
+		_ = db.Close()
+	}
 
 	logger.Info("Site Monitor stopped")
 }
