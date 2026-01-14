@@ -54,16 +54,19 @@ func main() {
 	// =========================
 	// PostgreSQL подключение
 	// =========================
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPass := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
+	
+	dbCfg := cfg.DB
 
 	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		dbHost, dbPort, dbUser, dbPass, dbName,
-	)
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			dbCfg.Host,
+			dbCfg.Port,
+			dbCfg.User,
+			dbCfg.Password,
+			dbCfg.Name,
+			dbCfg.SSLMode,
+		)
+
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		logger.Error("failed to connect to PostgreSQL", slog.String("error", err.Error()))

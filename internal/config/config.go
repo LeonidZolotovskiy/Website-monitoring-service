@@ -2,11 +2,9 @@ package config
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type Site struct {
@@ -16,76 +14,41 @@ type Site struct {
 }
 
 type Config struct {
-	Interval time.Duration `yaml:"interval"`
+	Interval time.Duration `yaml:"interval" env:"CHECK_INTERVAL"`
 	Sites    []Site        `yaml:"sites"`
-	Port     int           `yaml:"port"`      // HTTP сервер
-	LogLevel string        `yaml:"log_level"` // уровень логирования
-	DB       DBConfig      `yaml:"database"`
+
+	Port     int    `yaml:"port" env:"APP_PORT"`
+	LogLevel string `yaml:"log_level" env:"LOG_LEVEL"`
+
+	DB DBConfig `yaml:"database"`
 }
 
 type DBConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Name     string `yaml:"name"`
-	SSLMode  string `yaml:"sslmode"`
+	Host     string `yaml:"host" env:"DB_HOST"`
+	Port     int    `yaml:"port" env:"DB_PORT"`
+	User     string `yaml:"user" env:"DB_USER"`
+	Password string `yaml:"password" env:"DB_PASSWORD"`
+	Name     string `yaml:"name" env:"DB_NAME"`
+	SSLMode  string `yaml:"sslmode" env:"DB_SSLMODE"`
 }
 
 func Load(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read config file %q: %w", path, err)
+	var cfg Config
+
+	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
+		return nil, fmt.Errorf("cannot read config: %w", err)
 	}
 
-	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("cannot parse config file %q: %w", path, err)
+	if err := cleanenv.ReadEnv(&cfg); err != nil {
+		return nil, fmt.Errorf("cannot read env: %w", err)
 	}
 
 	if len(cfg.Sites) == 0 {
-		return nil, fmt.Errorf("config file %q: sites list is empty", path)
+		return nil, fmt.Errorf("sites list is empty")
 	}
 
 	if cfg.Interval <= 0 {
-		return nil, fmt.Errorf("config file %q: interval must be greater than zero", path)
-	}
-
-	if v := os.Getenv("APP_PORT"); v != "" {
-		if port, err := strconv.Atoi(v); err == nil {
-			cfg.Port = port
-		}
-	}
-
-	if v := os.Getenv("LOG_LEVEL"); v != "" {
-		cfg.LogLevel = v
-	}
-
-	if v := os.Getenv("CHECK_INTERVAL"); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			cfg.Interval = d
-		}
-	}
-
-	if v := os.Getenv("DB_HOST"); v != "" {
-		cfg.DB.Host = v
-	}
-	if v := os.Getenv("DB_PORT"); v != "" {
-		if port, err := strconv.Atoi(v); err == nil {
-			cfg.DB.Port = port
-		}
-	}
-	if v := os.Getenv("DB_USER"); v != "" {
-		cfg.DB.User = v
-	}
-	if v := os.Getenv("DB_PASSWORD"); v != "" {
-		cfg.DB.Password = v
-	}
-	if v := os.Getenv("DB_NAME"); v != "" {
-		cfg.DB.Name = v
-	}
-	if v := os.Getenv("DB_SSLMODE"); v != "" {
-		cfg.DB.SSLMode = v
+		return nil, fmt.Errorf("interval must be greater than zero")
 	}
 
 	return &cfg, nil
