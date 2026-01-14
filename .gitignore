@@ -1,0 +1,10 @@
+# Environment files
+.env
+
+# OS files
+.DS_Store
+
+# Build outputs
+/dist
+/build
+*.exe

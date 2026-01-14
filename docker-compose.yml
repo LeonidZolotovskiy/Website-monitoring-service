@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - site-monitor-postgres-data:/var/lib/postgresql/data:rw
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: site-monitor
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    ports:
+      - "${APP_PORT}:8080"
+
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      APP_PORT: ${APP_PORT}
+      LOG_LEVEL: ${LOG_LEVEL}
+      CHECK_INTERVAL: ${CHECK_INTERVAL}
+      HTTP_TIMEOUT: ${HTTP_TIMEOUT}
+
+    volumes:
+      - ./configs:/app/configs:ro
+
+    command: ["./myapp", "-config", "/app/configs/config.yaml"]
+
+volumes:
+  site-monitor-postgres-data:
+    name: site-monitor-postgres-data
