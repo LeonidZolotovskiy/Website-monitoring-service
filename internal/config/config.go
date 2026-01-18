@@ -24,12 +24,18 @@ type Config struct {
 }
 
 type DBConfig struct {
+	URL string `env:"DATABASE_URL"`
 	Host     string `yaml:"host" env:"DB_HOST"`
 	Port     int    `yaml:"port" env:"DB_PORT"`
 	User     string `yaml:"user" env:"DB_USER"`
 	Password string `yaml:"password" env:"DB_PASSWORD"`
 	Name     string `yaml:"name" env:"DB_NAME"`
 	SSLMode  string `yaml:"sslmode" env:"DB_SSLMODE"`
+
+	MaxConns        int32         `env:"DB_MAX_CONNS" env-default:"10"`
+	MinConns        int32         `env:"DB_MIN_CONNS" env-default:"2"`
+	MaxConnLifetime time.Duration `env:"DB_MAX_CONN_LIFETIME" env-default:"30m"`
+	MaxConnIdleTime time.Duration `env:"DB_MAX_CONN_IDLE_TIME" env-default:"5m"`
 }
 
 func Load(path string) (*Config, error) {
@@ -49,6 +55,15 @@ func Load(path string) (*Config, error) {
 
 	if cfg.Interval <= 0 {
 		return nil, fmt.Errorf("interval must be greater than zero")
+	}
+
+	if cfg.DB.URL == "" {
+		if cfg.DB.Host == "" ||
+			cfg.DB.Port == 0 ||
+			cfg.DB.User == "" ||
+			cfg.DB.Name == "" {
+			return nil, fmt.Errorf("database config is invalid: set DATABASE_URL or DB_HOST/DB_PORT/DB_USER/DB_NAME")
+		}
 	}
 
 	return &cfg, nil

@@ -8,6 +8,7 @@ import (
 var (
 	ErrSiteAlreadyExists = errors.New("site already exists")
 	ErrSiteNotFound      = errors.New("site not found")
+	ErrDuplicateKey = errors.New("duplicate key")
 )
 
 type SiteRepository interface {

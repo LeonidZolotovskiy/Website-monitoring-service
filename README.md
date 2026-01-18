@@ -38,3 +38,17 @@ sites := []string{
 Проверка всех сайтов повторяется каждые 60 секунд.
 
 Можно легко расширить список сайтов.
+
+### Run migrations
+
+Export database url:
+
+export DB_URL="postgres://myuser:mypassword@localhost:5432/mydatabase?sslmode=disable"
+
+Apply migrations:
+
+migrate -path migrations -database "$DB_URL" up
+
+Rollback last migration:
+
+migrate -path migrations -database "$DB_URL" down 1

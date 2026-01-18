@@ -8,6 +8,7 @@ import (
 
 	"site-monitor/internal/domain"
 	"site-monitor/internal/checker"
+	"site-monitor/internal/repository"
 	"site-monitor/internal/config"
 )
 
@@ -22,6 +23,8 @@ type Scheduler struct {
 	client   *http.Client
 	statusRepo StatusRepository
 
+	checkResultRepo repository.CheckResultRepository
+
 	ticker  *time.Ticker
 	quit    chan struct{}
 	wg      sync.WaitGroup
@@ -33,6 +36,7 @@ func New(
 	sites []config.Site,
 	logger *slog.Logger,
 	statusRepo StatusRepository,
+	checkResultRepo repository.CheckResultRepository,
 ) *Scheduler {
 	if interval <= 0 {
 		interval = time.Minute

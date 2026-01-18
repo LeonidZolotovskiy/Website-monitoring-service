@@ -99,7 +99,6 @@ func (r *SiteMemoryRepository) DeleteByID(id string) error {
 	return nil
 }
 
-
 func (r *SiteMemoryRepository) GetByID(id string) (*domain.Site, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
