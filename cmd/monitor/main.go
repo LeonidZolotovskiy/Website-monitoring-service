@@ -74,7 +74,7 @@ func main() {
 	// Repositories
 	// =========================
 	siteRepo := repository.NewPostgresSiteRepository(pool)
-	siteAdapter := repository.NewPostgresSiteAdapter(ctx, siteRepo)
+	siteAdapter := repository.NewPostgresSiteAdapter(siteRepo)
 
 	// Репозиторий истории проверок
 	checkResultRepo := repository.NewPostgresCheckResultRepository(ctx, pool)
