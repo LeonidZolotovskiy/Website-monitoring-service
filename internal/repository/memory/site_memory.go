@@ -2,7 +2,6 @@ package memory
 
 import (
 	"sync"
-
 	"site-monitor/internal/domain"
 	"site-monitor/internal/repository"
 )

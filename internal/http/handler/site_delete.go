@@ -18,7 +18,7 @@ func (h *SiteHandler) Delete(w http.ResponseWriter, r *http.Request) {
     id := r.PathValue("id")      
     ctx := r.Context()
 
-    if err := h.siteRepo.DeleteByID(ctx,id); err != nil {
+    if err := h.siteRepo.DeleteByID(ctx,h.logger,id); err != nil {
         if err == repository.ErrSiteNotFound {
             http.Error(w, "site not found", http.StatusNotFound)
             return

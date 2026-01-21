@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"log"
+	"log/slog"
 	"site-monitor/internal/domain"
-
+	"site-monitor/internal/storage/postgres"
 	"github.com/jackc/pgconn"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -97,17 +99,22 @@ func (r *PostgresSiteRepository) Update(ctx context.Context, site domain.Site) e
 	return nil
 }
 
-func (r *PostgresSiteRepository) Delete(ctx context.Context, id string) error {
-	query := `DELETE FROM sites WHERE id = $1;`
-	cmdTag, err := r.pool.Exec(ctx, query, id)
-	if err != nil {
-		log.Printf("failed to delete site: %v", err)
-		return err
-	}
-	if cmdTag.RowsAffected() == 0 {
-		return ErrSiteNotFound
-	}
-	return nil
+func (r *PostgresSiteRepository) Delete(ctx context.Context,logger *slog.Logger ,siteID string) error {
+    return postgres.WithTransaction(ctx, r.pool, logger, func(tx pgx.Tx) error {
+
+        if _, err := tx.Exec(ctx, `DELETE FROM site_checks WHERE site_id = $1`, siteID); err != nil {
+            return err
+        }
+
+        cmdTag, err := tx.Exec(ctx, `DELETE FROM sites WHERE id = $1`, siteID)
+        if err != nil {
+            return err
+        }
+        if cmdTag.RowsAffected() == 0 {
+            return ErrSiteNotFound
+        }
+        return nil
+    })
 }
 
 func (r *PostgresSiteRepository) GetByURL(ctx context.Context, url string) (*domain.Site, error) {
