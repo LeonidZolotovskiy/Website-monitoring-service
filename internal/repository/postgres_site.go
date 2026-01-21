@@ -132,3 +132,47 @@ func (r *PostgresSiteRepository) GetByURL(ctx context.Context, url string) (*dom
 	}
 	return site, nil
 }
+
+func (r *PostgresSiteRepository) GetHistoryBySiteID(ctx context.Context, siteID string, limit, offset int) ([]domain.SiteCheckStatus, int, error) {
+    var total int
+    err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM site_checks WHERE site_id = $1`, siteID).Scan(&total)
+    if err != nil {
+        return nil, 0, err
+    }
+
+    query := `
+        SELECT id, status, code, message, checked_at
+        FROM site_checks
+        WHERE site_id = $1
+        ORDER BY checked_at DESC
+        LIMIT $2 OFFSET $3
+    `
+    rows, err := r.pool.Query(ctx, query, siteID, limit, offset)
+    if err != nil {
+        return nil, 0, err
+    }
+    defer rows.Close()
+
+    var history []domain.SiteCheckStatus
+    for rows.Next() {
+        var s domain.SiteCheckStatus
+        var status string
+        var code *int64   
+        var msg *string
+
+        if err := rows.Scan(&s.SiteID, &status, &code, &msg, &s.LastCheckedAt); err != nil {
+            continue
+        }
+
+        s.Status = domain.SiteStatus(status)
+
+        if code != nil {
+            v := int(*code)   
+            s.StatusCode = &v
+        }
+
+        history = append(history, s)
+    }
+
+    return history, total, nil
+}

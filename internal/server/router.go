@@ -21,7 +21,8 @@ func NewRouter(siteHandler *Handlers, logger *slog.Logger) http.Handler {
 	mux.HandleFunc("POST /api/v1/sites", siteHandler.Site.Create)
 	mux.HandleFunc("DELETE /api/v1/sites/{id}", siteHandler.Site.Delete)
 	mux.HandleFunc("GET /api/v1/sites/{id}/status", siteHandler.Site.GetStatus)
-
+	mux.HandleFunc("GET /api/v1/sites/{id}/history", siteHandler.Site.GetHistory)
+	
 	mux.Handle(
 		"/swagger/swagger.json",
 		http.StripPrefix(

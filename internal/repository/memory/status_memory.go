@@ -2,7 +2,7 @@ package memory
 
 import (
 	"sync"
-
+	"errors"
 	"site-monitor/internal/domain"
 )
 
@@ -49,4 +49,24 @@ func (r *StatusMemoryRepository) GetBySiteID(siteID string) (*domain.SiteCheckSt
 	}
 
 	return &s, true
+}
+
+func (r *StatusMemoryRepository) GetHistoryBySiteID(siteID string, limit, offset int) ([]domain.SiteCheckStatus, int, error) {
+    r.mu.RLock()
+    defer r.mu.RUnlock()
+
+    s, ok := r.status[siteID]
+    if !ok {
+        return nil, 0, errors.New("site not found")
+    }
+
+    total := 1
+
+    if offset >= total {
+        return []domain.SiteCheckStatus{}, total, nil
+    }
+
+    history := []domain.SiteCheckStatus{s}
+
+    return history, total, nil
 }
