@@ -48,8 +48,8 @@ func (h *SiteHandler) Create(w http.ResponseWriter, r *http.Request) {
 		URL:  req.URL,
 		Name: req.Name,
 	}
-
-	if err := h.siteRepo.Create(site); err != nil {
+	ctx := r.Context()
+	if err := h.siteRepo.Create(ctx,site); err != nil {
 		if err == repository.ErrSiteAlreadyExists {
 			http.Error(w, "site with this url already exists", http.StatusConflict)
 			return

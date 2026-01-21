@@ -16,9 +16,9 @@ func (h *SiteHandler) GetSites(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
-	}
-
-	sites, err := h.siteRepo.GetAll()
+	}	
+	ctx := r.Context()
+	sites, err := h.siteRepo.GetAll(ctx)
 	if err != nil {
 		http.Error(w, "failed to get sites", http.StatusInternalServerError)
 		return

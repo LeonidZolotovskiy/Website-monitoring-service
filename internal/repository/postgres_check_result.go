@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"site-monitor/internal/domain"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,7 +21,7 @@ func (r *PostgresCheckResultRepository) Create(result domain.CheckResult) error 
 	query := `INSERT INTO check_results (site_id, status, response_time_ms, checked_at) VALUES ($1, $2, $3, NOW());`
 	_, err := r.pool.Exec(r.ctx, query, result.SiteID, result.Status, result.ResponseTimeMs)
 	if err != nil {
-		log.Printf("failed to insert check result: %v", err)
+		return fmt.Errorf("insert check result: %w", err)
 	}
 	return err
 }

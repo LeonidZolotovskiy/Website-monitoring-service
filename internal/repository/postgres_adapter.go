@@ -7,34 +7,33 @@ import (
 
 type PostgresSiteAdapter struct {
 	repo *PostgresSiteRepository
-	ctx  context.Context
 }
 
-func NewPostgresSiteAdapter(ctx context.Context, repo *PostgresSiteRepository) *PostgresSiteAdapter {
-	return &PostgresSiteAdapter{repo: repo, ctx: ctx}
+func NewPostgresSiteAdapter(repo *PostgresSiteRepository) *PostgresSiteAdapter {
+	return &PostgresSiteAdapter{repo: repo}
 }
 
-func (a *PostgresSiteAdapter) Create(site domain.Site) error {
-	_, err := a.repo.Create(a.ctx, site)
+func (a *PostgresSiteAdapter) Create(ctx context.Context, site domain.Site) error {
+	_, err := a.repo.Create(ctx, site)
 	return err
 }
 
-func (a *PostgresSiteAdapter) GetByID(id string) (*domain.Site, error) {
-	return a.repo.GetByID(a.ctx, id)
+func (a *PostgresSiteAdapter) GetByID(ctx context.Context, id string) (*domain.Site, error) {
+	return a.repo.GetByID(ctx, id)
 }
 
-func (a *PostgresSiteAdapter) GetAll() ([]domain.Site, error) {
-	return a.repo.GetAll(a.ctx)
+func (a *PostgresSiteAdapter) GetAll(ctx context.Context) ([]domain.Site, error) {
+	return a.repo.GetAll(ctx)
 }
 
-func (a *PostgresSiteAdapter) Update(site domain.Site) error {
-	return a.repo.Update(a.ctx, site)
+func (a *PostgresSiteAdapter) Update(ctx context.Context, site domain.Site) error {
+	return a.repo.Update(ctx, site)
 }
 
-func (a *PostgresSiteAdapter) DeleteByID(id string) error {
-	return a.repo.Delete(a.ctx, id)
+func (a *PostgresSiteAdapter) DeleteByID(ctx context.Context, id string) error {
+	return a.repo.Delete(ctx, id)
 }
 
-func (a *PostgresSiteAdapter) GetByURL(url string) (*domain.Site, error) {
-	return a.repo.GetByURL(a.ctx, url)
+func (a *PostgresSiteAdapter) GetByURL(ctx context.Context, url string) (*domain.Site, error) {
+	return a.repo.GetByURL(ctx, url)
 }
