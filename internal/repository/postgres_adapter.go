@@ -38,3 +38,7 @@ func (a *PostgresSiteAdapter) DeleteByID(ctx context.Context, logger *slog.Logge
 func (a *PostgresSiteAdapter) GetByURL(ctx context.Context, url string) (*domain.Site, error) {
 	return a.repo.GetByURL(ctx, url)
 }
+
+func (a *PostgresSiteAdapter) GetHistoryBySiteID(ctx context.Context, siteID string, limit int, offset int) ([]domain.SiteCheckStatus, int, error) {
+	return a.repo.GetHistoryBySiteID(ctx, siteID , limit, offset )
+}

@@ -99,7 +99,11 @@ func main() {
 
 	siteHandler := handler.NewSiteHandler(siteAdapter, siteStatus, logger)
 	healthHandler := handler.NewHealthHandler(startTime, version)
-
+	dbSites, err := siteRepo.GetAll(ctx)
+	if err != nil {
+		logger.Error("failed to load sites from DB", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 	handlers := &server.Handlers{
 		Site:   siteHandler,
 		Health: healthHandler,
@@ -109,7 +113,7 @@ func main() {
 	// Scheduler
 	// =========================
 	// Передаем репозиторий истории проверок в scheduler
-	s := scheduler.New(cfg.Interval, cfg.Sites, logger, siteStatus, checkResultRepo)
+	s := scheduler.New(cfg.Interval, dbSites, logger, siteStatus, checkResultRepo)
 	s.Start()
 
 	// =========================

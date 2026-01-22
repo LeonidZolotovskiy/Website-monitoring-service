@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"time"
 	"context"
 	"errors"
 	"log"
@@ -133,46 +134,90 @@ func (r *PostgresSiteRepository) GetByURL(ctx context.Context, url string) (*dom
 	return site, nil
 }
 
-func (r *PostgresSiteRepository) GetHistoryBySiteID(ctx context.Context, siteID string, limit, offset int) ([]domain.SiteCheckStatus, int, error) {
-    var total int
-    err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM site_checks WHERE site_id = $1`, siteID).Scan(&total)
-    if err != nil {
-        return nil, 0, err
-    }
+func (r *PostgresSiteRepository) GetHistoryBySiteID(
+	ctx context.Context,
+	siteID string,
+	limit, offset int,
+) ([]domain.SiteCheckStatus, int, error) {
 
-    query := `
-        SELECT id, status, code, message, checked_at
-        FROM site_checks
-        WHERE site_id = $1
-        ORDER BY checked_at DESC
-        LIMIT $2 OFFSET $3
-    `
-    rows, err := r.pool.Query(ctx, query, siteID, limit, offset)
-    if err != nil {
-        return nil, 0, err
-    }
-    defer rows.Close()
+	var total int
+	err := r.pool.QueryRow(
+		ctx,
+		`SELECT COUNT(*) FROM site_checks WHERE site_id = $1`,
+		siteID,
+	).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
 
-    var history []domain.SiteCheckStatus
-    for rows.Next() {
-        var s domain.SiteCheckStatus
-        var status string
-        var code *int64   
-        var msg *string
+	query := `
+		SELECT
+			site_id,
+			http_status,
+			response_time_ms,
+			is_available,
+			error_message,
+			checked_at
+		FROM site_checks
+		WHERE site_id = $1
+		ORDER BY checked_at DESC
+		LIMIT $2 OFFSET $3
+	`
 
-        if err := rows.Scan(&s.SiteID, &status, &code, &msg, &s.LastCheckedAt); err != nil {
-            continue
-        }
+	rows, err := r.pool.Query(ctx, query, siteID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
 
-        s.Status = domain.SiteStatus(status)
+	var history []domain.SiteCheckStatus
 
-        if code != nil {
-            v := int(*code)   
-            s.StatusCode = &v
-        }
+	for rows.Next() {
+		var s domain.SiteCheckStatus
 
-        history = append(history, s)
-    }
+		var httpStatus *int
+		var responseTime *time.Duration
+		var isAvailable bool
+		var errorMessage *string
 
-    return history, total, nil
+		err := rows.Scan(
+			&s.SiteID,
+			&httpStatus,
+			&responseTime,
+			&isAvailable,
+			&errorMessage,
+			&s.LastCheckedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// статус из boolean
+		if isAvailable {
+			s.Status = domain.StatusOK
+		}
+
+		if httpStatus != nil {
+			v := *httpStatus
+			s.StatusCode = &v
+		}
+
+		if errorMessage != nil {
+			s.Error = *errorMessage
+		}
+
+		if responseTime != nil {
+			v := *responseTime
+			s.ResponseTime = &v
+		}
+
+		history = append(history, s)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return history, total, nil
 }
+

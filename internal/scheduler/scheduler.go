@@ -9,7 +9,6 @@ import (
 	"site-monitor/internal/domain"
 	"site-monitor/internal/checker"
 	"site-monitor/internal/repository"
-	"site-monitor/internal/config"
 )
 
 type StatusRepository interface {
@@ -17,7 +16,7 @@ type StatusRepository interface {
 }
 
 type Scheduler struct {
-	sites    []config.Site
+	sites    []domain.Site
 	interval time.Duration
 	logger   *slog.Logger
 	client   *http.Client
@@ -33,7 +32,7 @@ type Scheduler struct {
 
 func New(
 	interval time.Duration,
-	sites []config.Site,
+	sites []domain.Site,
 	logger *slog.Logger,
 	statusRepo StatusRepository,
 	checkResultRepo repository.CheckResultRepository,
@@ -53,6 +52,7 @@ func New(
 		client:     client,
 		statusRepo: statusRepo,
 		quit:       make(chan struct{}),
+		checkResultRepo: checkResultRepo,
 	}
 }
 
@@ -91,7 +91,7 @@ func (s *Scheduler) runChecks() {
 	for _, site := range s.sites {
 		wg.Add(1)
 
-		go func(site config.Site) {
+		go func(site domain.Site) {
 			defer wg.Done()
 
 			start := time.Now()

@@ -57,8 +57,8 @@ func (h *SiteHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
             return
         }
     }
-
-    history, total, err := h.statusRepo.GetHistoryBySiteID(siteID, limit, offset)
+	ctx := r.Context()
+    history, total, err := h.siteRepo.GetHistoryBySiteID(ctx,siteID, limit, offset)
     if err != nil {
         h.logger.Error("Failed to get site history", slog.String("siteID", siteID), slog.Any("err", err))
         http.Error(w, "internal server error", http.StatusInternalServerError)
