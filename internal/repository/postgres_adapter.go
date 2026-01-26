@@ -32,7 +32,7 @@ func (a *PostgresSiteAdapter) Update(ctx context.Context, site domain.Site) erro
 }
 
 func (a *PostgresSiteAdapter) DeleteByID(ctx context.Context, logger *slog.Logger,id string) error {
-	return a.repo.Delete(ctx, logger, id)
+	return a.repo.DeleteByID(ctx, logger, id)
 }
 
 func (a *PostgresSiteAdapter) GetByURL(ctx context.Context, url string) (*domain.Site, error) {

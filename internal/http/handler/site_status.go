@@ -30,7 +30,7 @@ func (h *SiteHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, ok := h.statusRepo.GetBySiteID(siteID)
+	status, ok := h.statusRepo.GetBySiteID(ctx,siteID)
 	if !ok {
 		resp := SiteStatusResponse{
 			URL:    site.URL,

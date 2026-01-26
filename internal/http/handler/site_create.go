@@ -49,7 +49,7 @@ func (h *SiteHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Name: req.Name,
 	}
 	ctx := r.Context()
-	if err := h.siteRepo.Create(ctx,site); err != nil {
+	if  _,err := h.siteRepo.Create(ctx,site); err != nil {
 		if err == repository.ErrSiteAlreadyExists {
 			http.Error(w, "site with this url already exists", http.StatusConflict)
 			return

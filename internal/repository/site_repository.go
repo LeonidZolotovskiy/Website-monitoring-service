@@ -14,15 +14,15 @@ var (
 )
 
 type SiteRepository interface {
-	Create(ctx context.Context, site domain.Site) error
+	Create(ctx context.Context, site domain.Site) (string, error)
 	GetByURL(ctx context.Context, url string) (*domain.Site, error)
 	GetAll(ctx context.Context) ([]domain.Site, error)
 	DeleteByID(ctx context.Context, logger *slog.Logger, id string) error
 	GetByID(ctx context.Context, id string) (*domain.Site, error)
-	GetHistoryBySiteID(ctx context.Context,siteID string, limit, offset int) ([]domain.SiteCheckStatus, int, error)
 }
 
 type StatusRepository interface {
 	Save(status domain.SiteCheckStatus)
-	GetBySiteID(siteID string) (*domain.SiteCheckStatus, bool)
+	GetBySiteID(ctx context.Context, siteID string) (*domain.SiteCheckStatus, bool)
+	GetHistoryBySiteID(ctx context.Context,siteID string, limit, offset int) ([]domain.SiteCheckStatus, int, error)
 }

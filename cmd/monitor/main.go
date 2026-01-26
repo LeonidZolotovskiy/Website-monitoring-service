@@ -74,8 +74,8 @@ func main() {
 	// Repositories
 	// =========================
 	siteRepo := repository.NewPostgresSiteRepository(pool)
-	siteAdapter := repository.NewPostgresSiteAdapter(siteRepo)
-
+	//siteRepo := memory.NewSiteMemoryRepository()
+	
 	// Репозиторий истории проверок
 	checkResultRepo := repository.NewPostgresCheckResultRepository(ctx, pool)
 
@@ -97,7 +97,7 @@ func main() {
 	startTime := time.Now()
 	version := "1.0.0"
 
-	siteHandler := handler.NewSiteHandler(siteAdapter, siteStatus, logger)
+	siteHandler := handler.NewSiteHandler(siteRepo, siteStatus, logger)
 	healthHandler := handler.NewHealthHandler(startTime, version)
 	dbSites, err := siteRepo.GetAll(ctx)
 	if err != nil {

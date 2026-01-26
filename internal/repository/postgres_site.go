@@ -100,7 +100,7 @@ func (r *PostgresSiteRepository) Update(ctx context.Context, site domain.Site) e
 	return nil
 }
 
-func (r *PostgresSiteRepository) Delete(ctx context.Context,logger *slog.Logger ,siteID string) error {
+func (r *PostgresSiteRepository) DeleteByID(ctx context.Context,logger *slog.Logger ,siteID string) error {
     return postgres.WithTransaction(ctx, r.pool, logger, func(tx pgx.Tx) error {
 
         if _, err := tx.Exec(ctx, `DELETE FROM site_checks WHERE site_id = $1`, siteID); err != nil {
