@@ -6,6 +6,7 @@ import (
     "log/slog"
 
     "github.com/go-chi/chi/v5"
+    "site-monitor/internal/domain"
 )
 
 const (
@@ -63,10 +64,10 @@ func (h *SiteHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items := make([]SiteCheckHistoryItem, 0, len(history))
+	items := make([]domain.CheckResult, 0, len(history))
 
 	for _, r := range history {
-		items = append(items, SiteCheckHistoryItem{
+		items = append(items, domain.CheckResult{
 			ID: r.ID,
 			HTTPStatus: r.HTTPStatus,
 			IsAvailable: r.IsAvailable,
@@ -75,7 +76,7 @@ func (h *SiteHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	response := PaginatedResponse[SiteCheckHistoryItem]{
+	response := domain.PaginatedResponse[domain.CheckResult]{
 		Data:   items,
 		Total:  total,
 		Limit:  limit,

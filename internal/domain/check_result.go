@@ -10,3 +10,10 @@ type CheckResult struct {
     ErrorMessage *string   `json:"error_message,omitempty"`
     CheckedAt    time.Time `json:"checked_at"`
 }
+
+type PaginatedResponse[T any] struct {
+    Data  []T `json:"data"`
+    Total int `json:"total"`
+    Limit int `json:"limit"`
+    Offset int `json:"offset"`
+}
