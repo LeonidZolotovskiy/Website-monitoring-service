@@ -51,6 +51,7 @@ services:
 
     volumes:
       - ./configs:/app/configs:ro
+      - ./migrations:/app/migrations:ro
 
     command: ["./myapp", "-config", "/app/configs/config.yaml"]
 

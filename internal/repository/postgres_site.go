@@ -192,7 +192,6 @@ func (r *PostgresSiteRepository) GetHistoryBySiteID(
 			return nil, 0, err
 		}
 
-		// статус из boolean
 		if isAvailable {
 			s.Status = domain.StatusOK
 		}

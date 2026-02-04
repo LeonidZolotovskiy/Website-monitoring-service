@@ -3,7 +3,6 @@ package handler
 import (
     "net/http"
     "strconv"
-    "site-monitor/internal/repository"
     "log/slog"
 
     "github.com/go-chi/chi/v5"
@@ -15,72 +14,74 @@ const (
 )
 
 func (h *SiteHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
-    siteID := chi.URLParam(r, "id")
-    if siteID == "" {
-        http.Error(w, "missing site id", http.StatusBadRequest)
-        return
-    }
-
-    _, err := h.siteRepo.GetByID(r.Context(), siteID)
-    if err != nil {
-        if err == repository.ErrSiteNotFound {
-            http.Error(w, "site not found", http.StatusNotFound)
-            return
-        }
-        h.logger.Error("Failed to get site", slog.String("siteID", siteID), slog.Any("err", err))
-        http.Error(w, "internal server error", http.StatusInternalServerError)
-        return
-    }
-
-    query := r.URL.Query()
-    limit := DefaultLimit
-    offset := 0
-
-    if l := query.Get("limit"); l != "" {
-        if val, err := strconv.Atoi(l); err == nil && val > 0 {
-            if val > MaxLimit {
-                limit = MaxLimit
-            } else {
-                limit = val
-            }
-        } else {
-            http.Error(w, "invalid limit parameter", http.StatusBadRequest)
-            return
-        }
-    }
-
-    if o := query.Get("offset"); o != "" {
-        if val, err := strconv.Atoi(o); err == nil && val >= 0 {
-            offset = val
-        } else {
-            http.Error(w, "invalid offset parameter", http.StatusBadRequest)
-            return
-        }
-    }
 	ctx := r.Context()
-    history, total, err := h.statusRepo.GetHistoryBySiteID(ctx, siteID, limit, offset)
-    if err != nil {
-        h.logger.Error("Failed to get site history", slog.String("siteID", siteID), slog.Any("err", err))
-        http.Error(w, "internal server error", http.StatusInternalServerError)
-        return
-    }
 
-    var items []SiteCheckHistoryItem
-    for _, h := range history {
-        items = append(items, SiteCheckHistoryItem{
-            ID:        h.SiteID,
-            Status:    string(h.Status),
-            Code:      *h.StatusCode,
-            CheckedAt: *h.LastCheckedAt,
-        })
-    }
+	siteID := chi.URLParam(r, "id")
+	if siteID == "" {
+		http.Error(w, "missing site id", http.StatusBadRequest)
+		return
+	}
 
-    response := PaginatedResponse[SiteCheckHistoryItem]{
-        Data:   items,
-        Total:  total,
-        Limit:  limit,
-        Offset: offset,
-    }
+	query := r.URL.Query()
 
-    writeJSON(w, http.StatusOK, response)
+	limit := DefaultLimit
+	offset := 0
+
+	if l := query.Get("limit"); l != "" {
+		val, err := strconv.Atoi(l)
+		if err != nil || val <= 0 {
+			http.Error(w, "invalid limit parameter", http.StatusBadRequest)
+			return
+		}
+
+		if val > MaxLimit {
+			val = MaxLimit
+		}
+
+		limit = val
+	}
+
+	if o := query.Get("offset"); o != "" {
+		val, err := strconv.Atoi(o)
+		if err != nil || val < 0 {
+			http.Error(w, "invalid offset parameter", http.StatusBadRequest)
+			return
+		}
+
+		offset = val
+	}
+
+	history, total, err := h.checkResultRepo.GetBySiteID(ctx, siteID, limit, offset)
+	if err != nil {
+		h.logger.Error(
+			"failed to get site history",
+			slog.String("siteID", siteID),
+			slog.Any("err", err),
+		)
+
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	items := make([]SiteCheckHistoryItem, 0, len(history))
+
+	for _, r := range history {
+		items = append(items, SiteCheckHistoryItem{
+			ID: r.ID,
+			HTTPStatus: r.HTTPStatus,
+			IsAvailable: r.IsAvailable,
+            ResponseTime: r.ResponseTime,
+			CheckedAt: r.CheckedAt,
+		})
+	}
+
+	response := PaginatedResponse[SiteCheckHistoryItem]{
+		Data:   items,
+		Total:  total,
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	writeJSON(w, http.StatusOK, response)
 }
+

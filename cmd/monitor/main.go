@@ -24,13 +24,15 @@ import (
 func main() {
 	configPath := flag.String("config", "", "Path to config YAML file")
 	flag.Parse()
-
+	handlerJSON := slog.NewJSONHandler(os.Stdout, nil)
+	logger := slog.New(handlerJSON)
+	
 	if *configPath == "" {
 		slog.Error("config path is required. Use -config <path>")
 		os.Exit(1)
 	}
-
-	cfg, err := config.Load(*configPath)
+	
+	cfg, err := config.Load(*configPath, logger)
 	if err != nil {
 		slog.Error("failed to load config", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -39,8 +41,8 @@ func main() {
 	// =========================
 	// Logger
 	// =========================
-	handlerJSON := slog.NewJSONHandler(os.Stdout, nil)
-	logger := slog.New(handlerJSON)
+	
+	
 
 	logger.Info("Site Monitor started",
 		slog.Int("num_sites", len(cfg.Sites)),
@@ -57,7 +59,10 @@ func main() {
 		os.Exit(1)
 	}
 	logger.Info("PostgreSQL connected (pgx pool)")
-
+	if err := postgres.RunMigrations(pool, "migrations"); err != nil {
+    	logger.Error("failed to run migrations", slog.String("error", err.Error()))
+    	os.Exit(1)
+	}
 	// =========================
 	// MAP config.Site -> domain.Site
 	// =========================
@@ -97,7 +102,7 @@ func main() {
 	startTime := time.Now()
 	version := "1.0.0"
 
-	siteHandler := handler.NewSiteHandler(siteRepo, siteStatus, logger)
+	siteHandler := handler.NewSiteHandler(siteRepo, siteStatus, checkResultRepo,logger)
 	healthHandler := handler.NewHealthHandler(startTime, version)
 	dbSites, err := siteRepo.GetAll(ctx)
 	if err != nil {

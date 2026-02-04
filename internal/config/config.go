@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -38,8 +39,10 @@ type DBConfig struct {
 	MaxConnIdleTime time.Duration `env:"DB_MAX_CONN_IDLE_TIME" env-default:"5m"`
 }
 
-func Load(path string) (*Config, error) {
+func Load(path string, logger *slog.Logger,) (*Config, error) {
 	var cfg Config
+
+	logger.Info("loading from file",slog.String("path",path))
 
 	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
 		return nil, fmt.Errorf("cannot read config: %w", err)

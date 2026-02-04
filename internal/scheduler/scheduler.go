@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"context"
 
 	"site-monitor/internal/domain"
 	"site-monitor/internal/checker"
@@ -117,6 +118,27 @@ func (s *Scheduler) runChecks() {
 				ResponseTime: &responseTime,
 			})
 
+			checkResult := domain.CheckResult{
+				ID:           site.ID,
+				IsAvailable:  status == "UP",
+				HTTPStatus:   statusCode,      // *int
+				ResponseTime: &responseTime,   // *int
+				CheckedAt:    checkedAt,
+			}
+
+			err := s.checkResultRepo.Create(context.Background(),checkResult)
+			
+			if err != nil {
+				s.logger.Error(
+					"failed to save check result",
+						slog.String("siteID", site.ID),
+						slog.Bool("isAvailable", checkResult.IsAvailable),
+						slog.Any("httpStatus", checkResult.HTTPStatus),
+						slog.Any("responseTime", checkResult.ResponseTime),
+						slog.Time("checkedAt", checkResult.CheckedAt),
+						slog.Any("err", err),
+				)
+			}
 			// логирование — как было
 			if result.Err != nil {
 				s.logger.Warn("Site check failed",
