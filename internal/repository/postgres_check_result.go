@@ -17,18 +17,39 @@ func NewPostgresCheckResultRepository(ctx context.Context, pool *pgxpool.Pool) *
 	return &PostgresCheckResultRepository{pool: pool, ctx: ctx}
 }
 
-func (r *PostgresCheckResultRepository) Create(ctx context.Context, result domain.CheckResult) error {
-	query := `
-		INSERT INTO site_checks (site_id, http_status, response_time_ms, checked_at, is_available)
-		VALUES ($1, $2, $3, NOW());
-	`
+func (r *PostgresCheckResultRepository) Create(
+    ctx context.Context,
+    result domain.CheckResult,
+) error {
 
-	_, err := r.pool.Exec(ctx, query, result.HTTPStatus, result.ResponseTime, result.CheckedAt, result.IsAvailable)
-	if err != nil {
-		return fmt.Errorf("insert check result: %w", err)
-	}
+    const query = `
+        INSERT INTO site_checks (
+            site_id,
+            http_status,
+            response_time_ms,
+            is_available,
+            error_message,
+            checked_at
+        )
+        VALUES ($1,$2,$3,$4,$5,$6);
+    `
 
-	return nil
+    _, err := r.pool.Exec(
+        ctx,
+        query,
+        result.ID,
+        result.HTTPStatus,
+        result.ResponseTime,
+        result.IsAvailable,
+        result.ErrorMessage,
+        result.CheckedAt,
+    )
+
+    if err != nil {
+        return fmt.Errorf("insert check result: %w", err)
+    }
+
+    return nil
 }
 
 
