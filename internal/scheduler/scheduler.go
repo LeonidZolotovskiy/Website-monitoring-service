@@ -119,7 +119,7 @@ func (s *Scheduler) runChecks() {
 			})
 
 			checkResult := domain.CheckResult{
-				ID:           site.ID,
+				SiteID:       site.ID, 
 				IsAvailable:  status == "UP",
 				HTTPStatus:   statusCode,      // *int
 				ResponseTime: &responseTime,   // *int

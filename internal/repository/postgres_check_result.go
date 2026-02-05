@@ -1,10 +1,10 @@
 package repository
 
 import (
-	"time"
 	"context"
 	"fmt"
 	"site-monitor/internal/domain"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -19,11 +19,15 @@ func NewPostgresCheckResultRepository(ctx context.Context, pool *pgxpool.Pool) *
 }
 
 func (r *PostgresCheckResultRepository) Create(
-    ctx context.Context,
-    result domain.CheckResult,
+	ctx context.Context,
+	result domain.CheckResult,
 ) error {
 
-    const query = `
+	if result.SiteID == "" {
+		return fmt.Errorf("cannot insert check result: SiteID is empty")
+	}
+
+	const query = `
         INSERT INTO site_checks (
             site_id,
             http_status,
@@ -34,31 +38,34 @@ func (r *PostgresCheckResultRepository) Create(
         )
         VALUES ($1,$2,$3,$4,$5,$6);
     `
-	var responseTimeMs int32
+
+	var responseTime *int32
 	if result.ResponseTime != nil {
-    	responseTimeMs = int32(*result.ResponseTime / time.Millisecond)
-	} else {
-    	responseTimeMs = 0 
+		rt := int32(*result.ResponseTime / time.Millisecond)
+		responseTime = &rt
 	}
-    _, err := r.pool.Exec(
-        ctx,
-        query,
-        result.ID,
-        result.HTTPStatus,
-        responseTimeMs,
-        result.IsAvailable,
-        result.ErrorMessage,
-        result.CheckedAt,
-    )
 
-    if err != nil {
-        return fmt.Errorf("insert check result: %w", err)
-    }
+	_, err := r.pool.Exec(
+		ctx,
+		query,
+		result.SiteID,
+		result.HTTPStatus,
+		responseTime,
+		result.IsAvailable,
+		result.ErrorMessage,
+		result.CheckedAt,
+	)
 
-    return nil
+	if err != nil {
+		return fmt.Errorf("insert check result: %w", err)
+	}
+
+	return nil
 }
 
 
+
+// GetBySiteID возвращает список проверок сайта с пагинацией
 func (r *PostgresCheckResultRepository) GetBySiteID(
 	ctx context.Context,
 	siteID string,
@@ -66,15 +73,13 @@ func (r *PostgresCheckResultRepository) GetBySiteID(
 ) ([]domain.CheckResult, int, error) {
 
 	var total int
-
 	countQuery := `SELECT COUNT(*) FROM site_checks WHERE site_id = $1;`
-	err := r.pool.QueryRow(ctx, countQuery, siteID).Scan(&total)
-	if err != nil {
-		return nil, 0, err
+	if err := r.pool.QueryRow(ctx, countQuery, siteID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count check results: %w", err)
 	}
 
 	query := `
-		SELECT id, site_id, http_status, response_time_ms, checked_at
+		SELECT id, site_id, http_status, response_time_ms, is_available, error_message, checked_at
 		FROM site_checks
 		WHERE site_id = $1
 		ORDER BY checked_at DESC
@@ -83,7 +88,7 @@ func (r *PostgresCheckResultRepository) GetBySiteID(
 
 	rows, err := r.pool.Query(ctx, query, siteID, limit, offset)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("query check results: %w", err)
 	}
 	defer rows.Close()
 
@@ -91,15 +96,23 @@ func (r *PostgresCheckResultRepository) GetBySiteID(
 
 	for rows.Next() {
 		var rsl domain.CheckResult
+		var responseTimeMs *int32
 
 		if err := rows.Scan(
 			&rsl.ID,
+			&rsl.SiteID,
 			&rsl.HTTPStatus,
+			&responseTimeMs,
 			&rsl.IsAvailable,
-			&rsl.ResponseTime,
+			&rsl.ErrorMessage,
 			&rsl.CheckedAt,
 		); err != nil {
-			return nil, 0, err
+			return nil, 0, fmt.Errorf("scan row: %w", err)
+		}
+
+		if responseTimeMs != nil {
+			rt := time.Duration(*responseTimeMs) * time.Millisecond
+			rsl.ResponseTime = &rt
 		}
 
 		results = append(results, rsl)
@@ -108,14 +121,14 @@ func (r *PostgresCheckResultRepository) GetBySiteID(
 	return results, total, rows.Err()
 }
 
-
+// GetLatestBySiteID возвращает последнюю проверку сайта
 func (r *PostgresCheckResultRepository) GetLatestBySiteID(
 	ctx context.Context,
 	siteID string,
 ) (*domain.CheckResult, error) {
 
 	query := `
-		SELECT id, site_id, http_status, response_time_ms, checked_at
+		SELECT id, site_id, http_status, response_time_ms, is_available, error_message, checked_at
 		FROM site_checks
 		WHERE site_id = $1
 		ORDER BY checked_at DESC
@@ -123,19 +136,26 @@ func (r *PostgresCheckResultRepository) GetLatestBySiteID(
 	`
 
 	var rsl domain.CheckResult
+	var responseTimeMs *int32
 
 	err := r.pool.QueryRow(ctx, query, siteID).Scan(
 		&rsl.ID,
+		&rsl.SiteID,
 		&rsl.HTTPStatus,
+		&responseTimeMs,
 		&rsl.IsAvailable,
-		&rsl.ResponseTime,
+		&rsl.ErrorMessage,
 		&rsl.CheckedAt,
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get latest check result: %w", err)
+	}
+
+	if responseTimeMs != nil {
+		rt := time.Duration(*responseTimeMs) * time.Millisecond
+		rsl.ResponseTime = &rt
 	}
 
 	return &rsl, nil
 }
-
