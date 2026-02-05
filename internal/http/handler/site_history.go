@@ -5,7 +5,6 @@ import (
     "strconv"
     "log/slog"
 
-    "github.com/go-chi/chi/v5"
     "site-monitor/internal/domain"
 )
 
@@ -17,7 +16,7 @@ const (
 func (h *SiteHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	siteID := chi.URLParam(r, "id")
+	siteID := r.PathValue("id")      
 	if siteID == "" {
 		http.Error(w, "missing site id", http.StatusBadRequest)
 		return

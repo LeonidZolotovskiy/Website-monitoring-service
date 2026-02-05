@@ -21,6 +21,7 @@ func NewSiteHandler(
 	return &SiteHandler{
 		siteRepo:   siteRepo,
 		statusRepo: statusRepo,
+		checkResultRepo: checkResultRepo,
 		logger: logger,
 	}
 }

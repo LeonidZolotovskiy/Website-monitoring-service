@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"time"
 	"context"
 	"fmt"
 	"site-monitor/internal/domain"
@@ -33,13 +34,18 @@ func (r *PostgresCheckResultRepository) Create(
         )
         VALUES ($1,$2,$3,$4,$5,$6);
     `
-
+	var responseTimeMs int32
+	if result.ResponseTime != nil {
+    	responseTimeMs = int32(*result.ResponseTime / time.Millisecond)
+	} else {
+    	responseTimeMs = 0 
+	}
     _, err := r.pool.Exec(
         ctx,
         query,
         result.ID,
         result.HTTPStatus,
-        result.ResponseTime,
+        responseTimeMs,
         result.IsAvailable,
         result.ErrorMessage,
         result.CheckedAt,
