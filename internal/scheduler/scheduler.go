@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"context"
 
 	"site-monitor/internal/domain"
 	"site-monitor/internal/checker"
-	"site-monitor/internal/config"
+	"site-monitor/internal/repository"
 )
 
 type StatusRepository interface {
@@ -16,11 +17,13 @@ type StatusRepository interface {
 }
 
 type Scheduler struct {
-	sites    []config.Site
+	sites    []domain.Site
 	interval time.Duration
 	logger   *slog.Logger
 	client   *http.Client
 	statusRepo StatusRepository
+
+	checkResultRepo repository.CheckResultRepository
 
 	ticker  *time.Ticker
 	quit    chan struct{}
@@ -30,9 +33,10 @@ type Scheduler struct {
 
 func New(
 	interval time.Duration,
-	sites []config.Site,
+	sites []domain.Site,
 	logger *slog.Logger,
 	statusRepo StatusRepository,
+	checkResultRepo repository.CheckResultRepository,
 ) *Scheduler {
 	if interval <= 0 {
 		interval = time.Minute
@@ -49,6 +53,7 @@ func New(
 		client:     client,
 		statusRepo: statusRepo,
 		quit:       make(chan struct{}),
+		checkResultRepo: checkResultRepo,
 	}
 }
 
@@ -87,7 +92,7 @@ func (s *Scheduler) runChecks() {
 	for _, site := range s.sites {
 		wg.Add(1)
 
-		go func(site config.Site) {
+		go func(site domain.Site) {
 			defer wg.Done()
 
 			start := time.Now()
@@ -113,6 +118,27 @@ func (s *Scheduler) runChecks() {
 				ResponseTime: &responseTime,
 			})
 
+			checkResult := domain.CheckResult{
+				SiteID:       site.ID, 
+				IsAvailable:  status == "UP",
+				HTTPStatus:   statusCode,      // *int
+				ResponseTime: &responseTime,   // *int
+				CheckedAt:    checkedAt,
+			}
+
+			err := s.checkResultRepo.Create(context.Background(),checkResult)
+			
+			if err != nil {
+				s.logger.Error(
+					"failed to save check result",
+						slog.String("siteID", site.ID),
+						slog.Bool("isAvailable", checkResult.IsAvailable),
+						slog.Any("httpStatus", checkResult.HTTPStatus),
+						slog.Any("responseTime", checkResult.ResponseTime),
+						slog.Time("checkedAt", checkResult.CheckedAt),
+						slog.Any("err", err),
+				)
+			}
 			// логирование — как было
 			if result.Err != nil {
 				s.logger.Warn("Site check failed",

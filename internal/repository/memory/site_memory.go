@@ -1,8 +1,9 @@
 package memory
 
 import (
+	"context"
 	"sync"
-
+	"log/slog"
 	"site-monitor/internal/domain"
 	"site-monitor/internal/repository"
 )
@@ -20,9 +21,9 @@ func (r *SiteMemoryRepository) Reset() {
     r.sites = make(map[string]domain.Site)
 }
 
-func PopulateRepository(repo *SiteMemoryRepository, sites []domain.Site) error {
+func PopulateRepository(ctx context.Context, repo *SiteMemoryRepository, sites []domain.Site) error {
     for _, s := range sites {
-        if err := repo.Create(s); err != nil {
+        if _,err := repo.Create(ctx,s); err != nil {
             return err
         }
     }
@@ -46,21 +47,21 @@ func NewSiteMemoryRepository() *SiteMemoryRepository {
 	}
 }
 
-func (r *SiteMemoryRepository) Create(site domain.Site) error {
+func (r *SiteMemoryRepository) Create(ctx context.Context,site domain.Site) (string, error) {
     r.mu.Lock()
     defer r.mu.Unlock()
 
     if _, exists := r.sitesByURL[site.URL]; exists {
-        return repository.ErrSiteAlreadyExists
+        return "",repository.ErrSiteAlreadyExists
     }
 
     r.sites[site.ID] = site
     r.sitesByURL[site.URL] = site.ID
 
-    return nil
+    return site.ID, nil
 }
 
-func (r *SiteMemoryRepository) GetByURL(url string) (*domain.Site, error) {
+func (r *SiteMemoryRepository) GetByURL(ctx context.Context,url string) (*domain.Site, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -72,7 +73,7 @@ func (r *SiteMemoryRepository) GetByURL(url string) (*domain.Site, error) {
 	return &site, nil
 }
 
-func (r *SiteMemoryRepository) GetAll() ([]domain.Site, error) {
+func (r *SiteMemoryRepository) GetAll(ctx context.Context,) ([]domain.Site, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -84,7 +85,7 @@ func (r *SiteMemoryRepository) GetAll() ([]domain.Site, error) {
 	return result, nil
 }
 
-func (r *SiteMemoryRepository) DeleteByID(id string) error {
+func (r *SiteMemoryRepository) DeleteByID(ctx context.Context,logger *slog.Logger ,id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -99,8 +100,7 @@ func (r *SiteMemoryRepository) DeleteByID(id string) error {
 	return nil
 }
 
-
-func (r *SiteMemoryRepository) GetByID(id string) (*domain.Site, error) {
+func (r *SiteMemoryRepository) GetByID(ctx context.Context,id string) (*domain.Site, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

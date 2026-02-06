@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -11,30 +11,28 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/lib/pq"
-
 	"site-monitor/internal/config"
 	"site-monitor/internal/domain"
 	"site-monitor/internal/http/handler"
+	"site-monitor/internal/repository"
 	"site-monitor/internal/repository/memory"
 	"site-monitor/internal/scheduler"
 	"site-monitor/internal/server"
+	"site-monitor/internal/storage/postgres"
 )
 
-// @title           Site Monitor API
-// @version         1.0
-// @description     API for monitoring site availability
-// @BasePath        /api/v1
 func main() {
 	configPath := flag.String("config", "", "Path to config YAML file")
 	flag.Parse()
-
+	handlerJSON := slog.NewJSONHandler(os.Stdout, nil)
+	logger := slog.New(handlerJSON)
+	
 	if *configPath == "" {
 		slog.Error("config path is required. Use -config <path>")
 		os.Exit(1)
 	}
-
-	cfg, err := config.Load(*configPath)
+	
+	cfg, err := config.Load(*configPath, logger)
 	if err != nil {
 		slog.Error("failed to load config", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -43,8 +41,8 @@ func main() {
 	// =========================
 	// Logger
 	// =========================
-	handlerJSON := slog.NewJSONHandler(os.Stdout, nil)
-	logger := slog.New(handlerJSON)
+	
+	
 
 	logger.Info("Site Monitor started",
 		slog.Int("num_sites", len(cfg.Sites)),
@@ -52,28 +50,18 @@ func main() {
 	)
 
 	// =========================
-	// PostgreSQL подключение
+	// PostgreSQL pgx pool
 	// =========================
-	
-	dbCfg := cfg.DB
-
-	dsn := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-			dbCfg.Host,
-			dbCfg.Port,
-			dbCfg.User,
-			dbCfg.Password,
-			dbCfg.Name,
-			dbCfg.SSLMode,
-		)
-
-	db, err := sql.Open("postgres", dsn)
+	ctx := context.Background()
+	pool, err := postgres.NewPool(ctx, cfg.DB)
 	if err != nil {
 		logger.Error("failed to connect to PostgreSQL", slog.String("error", err.Error()))
-	} else if err := db.Ping(); err != nil {
-		logger.Error("PostgreSQL is not ready", slog.String("error", err.Error()))
-	} else {
-		logger.Info("PostgreSQL connected successfully")
+		os.Exit(1)
+	}
+	logger.Info("PostgreSQL connected (pgx pool)")
+	if err := postgres.RunMigrations(pool, "migrations"); err != nil {
+    	logger.Error("failed to run migrations", slog.String("error", err.Error()))
+    	os.Exit(1)
 	}
 	// =========================
 	// MAP config.Site -> domain.Site
@@ -88,24 +76,39 @@ func main() {
 	}
 
 	// =========================
-	// Repository + Handler (Memory пока оставляем)
+	// Repositories
 	// =========================
-	siteRepo := memory.NewSiteMemoryRepository()
-	siteStatus := memory.NewStatusMemoryRepository()
+	siteRepo := repository.NewPostgresSiteRepository(pool)
+	//siteRepo := memory.NewSiteMemoryRepository()
+	
+	// Репозиторий истории проверок
+	checkResultRepo := repository.NewPostgresCheckResultRepository(ctx, pool)
 
-	siteRepo.Reset()
+	siteStatus := memory.NewStatusMemoryRepository()
 	siteStatus.Reset()
 
-	if err := memory.PopulateRepository(siteRepo, sites); err != nil {
-		logger.Error(fmt.Sprintf("failed to populate repository: %v", err))
+	// Populate initial sites из конфига
+	for _, s := range sites {
+		if _, err := siteRepo.Create(ctx, s); err != nil {
+			if !errors.Is(err, repository.ErrDuplicateKey) {
+				logger.Error(fmt.Sprintf("failed to populate site %s: %v", s.Name, err))
+			}
+		}
 	}
 
+	// =========================
+	// Handlers
+	// =========================
 	startTime := time.Now()
 	version := "1.0.0"
 
-	siteHandler := handler.NewSiteHandler(siteRepo, siteStatus, logger)
+	siteHandler := handler.NewSiteHandler(siteRepo, siteStatus, checkResultRepo,logger)
 	healthHandler := handler.NewHealthHandler(startTime, version)
-
+	dbSites, err := siteRepo.GetAll(ctx)
+	if err != nil {
+		logger.Error("failed to load sites from DB", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 	handlers := &server.Handlers{
 		Site:   siteHandler,
 		Health: healthHandler,
@@ -114,22 +117,19 @@ func main() {
 	// =========================
 	// Scheduler
 	// =========================
-	s := scheduler.New(cfg.Interval, cfg.Sites, logger, siteStatus)
+	// Передаем репозиторий истории проверок в scheduler
+	s := scheduler.New(cfg.Interval, dbSites, logger, siteStatus, checkResultRepo)
 	s.Start()
 
 	// =========================
 	// HTTP Router + Server
 	// =========================
 	router := server.NewRouter(handlers, logger)
-
-	httpServer := server.New(":8080", router, logger)
+	httpServer := server.New(fmt.Sprintf(":%d", cfg.Port), router, logger)
 
 	go func() {
 		if err := httpServer.Start(); err != nil {
-			logger.Error(
-				"HTTP server error",
-				slog.String("error", err.Error()),
-			)
+			logger.Error("HTTP server error", slog.String("error", err.Error()))
 		}
 	}()
 
@@ -142,18 +142,17 @@ func main() {
 
 	logger.Info("Shutting down...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctxShutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := httpServer.Stop(ctx); err != nil {
+	if err := httpServer.Stop(ctxShutdown); err != nil {
 		logger.Error("failed to stop HTTP server", slog.String("error", err.Error()))
 	}
 
 	s.Stop()
 
-	// Закрываем подключение к PostgreSQL, если было
-	if db != nil {
-		_ = db.Close()
+	if pool != nil {
+		pool.Close()
 	}
 
 	logger.Info("Site Monitor stopped")

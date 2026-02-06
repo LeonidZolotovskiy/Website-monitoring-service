@@ -9,4 +9,36 @@ database:
   name: mydatabase
   sslmode: disable
 
-sites_file: /app/configs/sites.yaml
+interval: 60s
+
+sites:
+  - id: site-1
+    name: Google
+    url: https://www.google.com
+  - id: site-2
+    name: GitHub
+    url: https://www.github.com
+  - id: site-3
+    name: StackOverflow
+    url: https://www.stackoverflow.com
+  - id: site-4
+    name: Wikipedia
+    url: https://www.wikipedia.org
+  - id: site-5
+    name: Reddit
+    url: https://www.reddit.com
+  - id: site-6
+    name: Apple
+    url: https://www.apple.com
+  - id: site-7
+    name: Microsoft
+    url: https://www.microsoft.com
+  - id: site-8
+    name: Fake Site 1
+    url: https://www.thissitedoesnotexist12345.com
+  - id: site-9
+    name: Localhost
+    url: https://localhost:1234
+  - id: site-10
+    name: Invalid URL
+    url: http://invalid-url

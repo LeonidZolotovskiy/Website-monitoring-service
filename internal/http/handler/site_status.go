@@ -23,14 +23,14 @@ func (h *SiteHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid site id", http.StatusBadRequest)
 		return
 	}
-
-	site, err := h.siteRepo.GetByID(siteID)
+	ctx := r.Context()
+	site, err := h.siteRepo.GetByID(ctx,siteID)
 	if err != nil {
 		http.Error(w, "site not found", http.StatusNotFound)
 		return
 	}
 
-	status, ok := h.statusRepo.GetBySiteID(siteID)
+	status, ok := h.statusRepo.GetBySiteID(ctx,siteID)
 	if !ok {
 		resp := SiteStatusResponse{
 			URL:    site.URL,

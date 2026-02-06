@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
 
     environment:
+      DATABASE_URL: ${DATABASE_URL}
+      DB_MAX_CONNS: ${DB_MAX_CONNS}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
@@ -49,6 +51,7 @@ services:
 
     volumes:
       - ./configs:/app/configs:ro
+      - ./migrations:/app/migrations:ro
 
     command: ["./myapp", "-config", "/app/configs/config.yaml"]
 
