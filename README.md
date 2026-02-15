@@ -1,3 +1,5 @@
+[![CI](https://github.com/LeonidZolotovskiy/Website-monitoring-service/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/LeonidZolotovskiy/Website-monitoring-service/actions/workflows/ci.yml?query=branch%3Adev)
+
 # Website-monitoring-service
 # Site Monitor
 
@@ -97,3 +99,15 @@ go test -v -short ./...
 -coverprofile и -cover — проверка покрытия:
 
 go test -cover -coverprofile=coverage.out ./...
+
+## CI
+
+CI запускается при push в ветку `dev` и при Pull Request в `dev`.
+
+Проверки:
+- Unit tests: `go test ./... -race -coverprofile=coverage.out`
+- Lint: `golangci-lint run`
+
+Локально:
+- `go test ./... -race -count=1`
+- `golangci-lint run`

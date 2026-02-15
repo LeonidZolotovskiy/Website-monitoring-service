@@ -1,0 +1,31 @@
+run:
+  timeout: 5m
+  tests: true
+
+output:
+  sort-results: true
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - ineffassign
+    - unused
+    - gofmt
+    - goimports
+    - misspell
+    - revive
+
+linters-settings:
+  revive:
+    ignore-generated-header: true
+    rules:
+      - name: var-naming
+      - name: indent-error-flow
+      - name: empty-lines
+      - name: exported
+
+issues:
+  exclude-use-default: false
