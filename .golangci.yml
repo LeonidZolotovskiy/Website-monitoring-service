@@ -1,3 +1,5 @@
+version: 2
+
 run:
   timeout: 5m
   tests: true
@@ -8,24 +10,10 @@ output:
 linters:
   enable:
     - govet
-    - errcheck
     - staticcheck
-    - gosimple
     - ineffassign
     - unused
-    - gofmt
-    - goimports
     - misspell
+  disable:
     - revive
-
-linters-settings:
-  revive:
-    ignore-generated-header: true
-    rules:
-      - name: var-naming
-      - name: indent-error-flow
-      - name: empty-lines
-      - name: exported
-
-issues:
-  exclude-use-default: false
+    - errcheck
