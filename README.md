@@ -1,3 +1,5 @@
+[![CI](https://github.com/LeonidZolotovskiy/Website-monitoring-service/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/LeonidZolotovskiy/Website-monitoring-service/actions/workflows/ci.yml?query=branch%3Adev)
+
 # Website-monitoring-service
 # Site Monitor
 
@@ -52,3 +54,60 @@ migrate -path migrations -database "$DB_URL" up
 Rollback last migration:
 
 migrate -path migrations -database "$DB_URL" down 1
+
+#### Запуск тестов
+
+1. Запуск всех тестов
+make test
+
+Или напрямую через Go:
+
+go test ./...
+
+2. Подробный вывод тестов
+make test-verbose
+
+Или:
+
+go test -v ./...
+
+3. Проверка покрытия кода
+make test-cover
+
+Выведет процент покрытия и создаст файл coverage.out.
+
+4. Генерация HTML-отчета по покрытию
+make test-cover-html
+
+Создаётся файл coverage.html.
+
+Его можно открыть в браузере для визуального анализа покрытия:
+
+open coverage.html  # macOS
+xdg-open coverage.html  # Linux
+
+Примеры флагов go test
+
+-run TestName — запуск конкретного теста:
+
+go test -v ./... -run TestCheckSite
+
+-short — пропуск долгих тестов:
+
+go test -v -short ./...
+
+-coverprofile и -cover — проверка покрытия:
+
+go test -cover -coverprofile=coverage.out ./...
+
+## CI
+
+CI запускается при push в ветку `dev` и при Pull Request в `dev`.
+
+Проверки:
+- Unit tests: `go test ./... -race -coverprofile=coverage.out`
+- Lint: `golangci-lint run`
+
+Локально:
+- `go test ./... -race -count=1`
+- `golangci-lint run`
