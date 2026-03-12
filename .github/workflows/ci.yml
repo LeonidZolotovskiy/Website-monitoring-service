@@ -24,7 +24,10 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Test (race + coverage)
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests (race + coverage)
         run: |
           go test ./... -race -count=1 -covermode=atomic -coverprofile=coverage.out
           go tool cover -func=coverage.out
@@ -50,7 +53,7 @@ jobs:
           cache: true
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v8
         with:
-          version: v2.0.0
+          version: latest
           args: --timeout=5m
